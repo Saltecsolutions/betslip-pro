@@ -9,3 +9,6 @@ The private partnerships.requests table is inaccessible directly to API roles. P
 Requests contain account-linked business data: include them when an operator processes a data access, correction or deletion request. No retention duration is presented as statutory. Until a retention schedule is approved, no automatic purge runs. On an approved deletion request, the privacy operator reviews partnerships.requests for this user and removes or redacts business/objective/response data unless a documented financial, dispute or legal hold requires retention; preserve the minimum necessary audit evidence. Do not put identity documents or payment credentials in these fields.
 
 Validation: production Next.js build/TypeScript passed. Hosted transactional test brand_partnerships.sql passed with rollback: valid submission, invalid-input rejection, owner isolation, non-admin denial, direct-table denial, applicant-visible response and audit evidence. No test campaigns or users retained.
+
+
+Admin email alerts: new requests now enqueue a minimal notification to the configured owner. See ADMIN-EMAIL-ALERTS.md; sending requires the Edge Function Resend secret. Applicant replies remain in-app.

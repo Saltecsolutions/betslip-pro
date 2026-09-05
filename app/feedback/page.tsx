@@ -15,7 +15,7 @@ export default function FeedbackPage(){
  return <main className="container">
   <PageHeading eyebrow={t('YOUR VOICE','MAONI YAKO')} title={t('Help improve Betslip Pro.','Tusaidie kuboresha Betslip Pro.')} description={t('Report a problem or share an idea. Your feedback goes directly to our team.','Eleza tatizo au toa pendekezo. Maoni yako yanafika moja kwa moja kwa timu yetu.')}/>
   <section className="panel" style={{maxWidth:850,margin:'0 auto 32px'}}>
-   <h2>{t('Send feedback','Tuma maoni')}</h2>
+   <h2>{t('Send feedback','Tuma maoni')}</h2><p><Link className="btn btn-primary" href="/support">{t("Need a reply or help with your account? Open a ticket","Unahitaji jibu au msaada wa akaunti? Fungua ticket")}</Link></p>
    <p className="muted">{t('Describe what happened, which page you were using, and your device. Contact email is optional. Never include passwords, OTPs, identity documents or payment details.','Eleza kilichotokea, ukurasa uliokuwa unatumia na kifaa chako. Email ya mawasiliano ni hiari. Usiweke nenosiri, OTP, nyaraka za utambulisho au taarifa za malipo.')}</p>
    <p className="muted">{t('This form uses Google Forms. Opening it connects to Google; responses are stored in a private Google Sheet for our team to review and track.','Fomu hii inatumia Google Forms. Ukiifungua unaunganika na Google; majibu yanahifadhiwa kwenye Google Sheet ya faragha ili timu iyakague na kufuatilia hatua.')}{' '}<Link href="/legal/privacy">{t('Privacy policy','Sera ya faragha')}</Link></p>
    <div style={{display:'flex',flexWrap:'wrap',gap:12,margin:'20px 0'}}>

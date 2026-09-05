@@ -1,5 +1,6 @@
 const recipient = 'salmin@saltecsolutions.co.tz';
 const messages = {
+  support_escalation: ['Ticket imechelewa kushughulikiwa / Support ticket overdue', '/support/team'],
   partnership: ['Ombi jipya la partnership / New partnership request', '/admin/partnerships'],
   privacy: ['Ombi la faragha linahitaji hatua / Privacy request needs attention', '/admin/compliance'],
   permissions: ['Ruhusa za usimamizi zimebadilika / Admin permissions changed', '/admin/compliance'],
@@ -9,6 +10,12 @@ const messages = {
   test: ['Jaribio la notifications / Notifications test', '/admin/alerts'],
 };
 export function emailFor(item) {
+  if(item.kind==='support_customer') {
+    const s=item.summary;
+    if(!s || !/^[0-9a-f-]{36}$/.test(s.ticket_id) || !Number.isSafeInteger(s.number) || s.number<1 || typeof s.email!=='string' || !/^[^\s@<>\r\n]+@[^\s@<>\r\n]+\.[^\s@<>\r\n]+$/.test(s.email)) throw new Error('invalid_support_recipient');
+    return {from:'Betslip Pro <noreply@betslip.co.tz>',to:[s.email],subject:`Betslip Pro: Ticket BP-${s.number}`,
+      text:`Ticket BP-${s.number} imepokelewa au imesasishwa. Ingia kuona status na majibu ya timu.\nYour support ticket has been received or updated. Sign in to view its status and conversation.\n\nhttps://www.betslip.co.tz/support/${s.ticket_id}\n\nKwa usalama, maelezo ya tatizo hayajawekwa kwenye email. Jibu ndani ya ticket, usijibu email hii. Unaweza kuzima email kwenye ticket.\nFor privacy, issue details are not included here. Reply inside the ticket, not to this email. Email updates can be disabled on the ticket.`};
+  }
   if(item.kind==='partner_weekly') {
     const summary=item.summary;
     const keys=['new_users','publishing_tipsters','published_content','paid_purchases','partnership_requests'];

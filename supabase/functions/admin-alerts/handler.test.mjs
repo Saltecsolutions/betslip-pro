@@ -20,3 +20,15 @@ test('weekly partner email is restricted to fixed aggregate fields and recipient
  assert.ok(!mail.text.includes('/admin'));assert.ok(mail.text.includes('2026-08-31'));
  assert.throws(()=>emailFor({kind:'partner_weekly',summary:{...s,new_users:'<script>'}}));
 });
+test('support customer email uses only verified server payload fields and ticket link',()=>{
+ const summary={ticket_id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',number:42,email:'customer@example.com',body:'PRIVATE MESSAGE',url:'https://evil.invalid'};
+ const mail=emailFor({kind:'support_customer',summary});
+ assert.deepEqual(mail.to,['customer@example.com']);assert.ok(mail.text.includes('/support/'+summary.ticket_id));
+ assert.ok(!JSON.stringify(mail).includes('PRIVATE MESSAGE'));assert.ok(!JSON.stringify(mail).includes('evil.invalid'));
+ assert.throws(()=>emailFor({kind:'support_customer',summary:{...summary,email:'a@example.com\r\nBcc:other@example.com'}}));
+ assert.throws(()=>emailFor({kind:'support_customer',summary:{...summary,ticket_id:'//evil.invalid'}}));
+});
+test('overdue support escalation is routed only to Salmin',()=>{
+ const mail=emailFor({kind:'support_escalation',id:'overdue',summary:{email:'other@example.com'}});
+ assert.deepEqual(mail.to,['salmin@saltecsolutions.co.tz']);assert.ok(mail.text.includes('/support/team'));
+});

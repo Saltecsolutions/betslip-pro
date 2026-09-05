@@ -1,0 +1,2 @@
+-- Generated version from hosted Supabase migration history (CLI unavailable locally).
+create or replace function public.confirm_adult() returns void language plpgsql security definer set search_path='' as $$ begin if auth.uid() is null then raise exception 'Sign in required'; end if; update public.profiles set age_verified=true where id=auth.uid() and status='active'; if not found then raise exception 'Active profile required'; end if; end $$; revoke all on function public.confirm_adult() from public,anon; grant execute on function public.confirm_adult() to authenticated;

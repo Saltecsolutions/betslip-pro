@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,6 +23,9 @@ export default function PredictionDetailPage() {
   const supabase = useMemo(() => createClient(), []);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [protectedContent, setProtectedContent] = useState<{prediction_text:string; betslip_code:string} | null>(null);
+  const autoBuy=useRef(false);
+  const [loaded,setLoaded]=useState(false);
+  const [busy,setBusy]=useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -33,26 +36,33 @@ export default function PredictionDetailPage() {
         .eq("id", params.id)
         .single();
       setPrediction(data as Prediction | null);
+      setLoaded(true);
 
       const { data: unlocked } = await supabase.rpc("get_prediction_protected_content", { p_prediction_id: params.id });
       if (Array.isArray(unlocked) && unlocked[0]) setProtectedContent(unlocked[0]);
     })();
   }, [params.id, supabase]);
 
+  useEffect(()=>{if(prediction && !autoBuy.current && new URLSearchParams(window.location.search).get("buy")==="1"){autoBuy.current=true;void createPurchase();}},[prediction]);
+
   async function createPurchase() {
+    if(busy)return;
+    setBusy(true);
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) {
-      router.push(`/login?next=/predictions/${params.id}`);
+      router.push(`/login?next=${encodeURIComponent(`/predictions/${params.id}?buy=1`)}`);
       return;
     }
-    if (!prediction) return;
+    if (!prediction) {setBusy(false);return;}
+    const {data:profile}=await supabase.from("profiles").select("age_verified").eq("id",authData.user.id).single();
+    if(!profile?.age_verified){router.push(`/account/confirm-age?next=${encodeURIComponent(`/predictions/${params.id}?buy=1`)}`);return;}
 
     const { data: purchaseId, error } = await supabase.rpc("create_purchase", { p_prediction_id: prediction.id });
-    if (error) setMessage(error.message);
+    if (error) {setMessage(error.message);setBusy(false);}
     else router.push(`/purchases/${purchaseId}/payment`);
   }
 
-  if (!prediction) return <main className="container"><p>Loading...</p></main>;
+  if (!prediction) return <main className="container"><p>{loaded?"Slip haipatikani / Slip unavailable":"Loading / Inapakia…"}</p><a href="/">← Angalia slips / Browse slips</a></main>;
 
   return (
     <main className="container">
@@ -72,7 +82,7 @@ export default function PredictionDetailPage() {
             <strong>Betslip code: {protectedContent.betslip_code}</strong>
           </div>
         ) : (
-          <button className="btn btn-primary" onClick={createPurchase}>Buy / Nunua</button>
+          <button className="btn btn-primary" disabled={busy} onClick={createPurchase}>{busy?"Subiri / Please wait…":"Buy / Nunua"}</button>
         )}
         {message && <p className="notice">{message}</p>}
       </section>

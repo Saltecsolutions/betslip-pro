@@ -1,0 +1,8 @@
+'use client';
+import {FormEvent,useState} from 'react';
+import {createClient} from '@/lib/supabase/client';
+import {useLanguage} from '@/components/ui';
+export function WithdrawalForm(){const {t}=useLanguage();const [requestId]=useState(()=>crypto.randomUUID());const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
+ async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);const form=e.currentTarget;const f=new FormData(form);try{const {error}=await createClient().rpc('request_withdrawal',{p_amount:Number(f.get('amount')),p_method:f.get('method'),p_account:f.get('account'),p_request_id:requestId});if(error)throw error;window.location.reload();}catch(e:any){setMessage(e.message||t('Try again.','Jaribu tena.'));}finally{setBusy(false);}}
+ return <details className="panel"><summary>{t('Request a withdrawal','Omba kutoa pesa')}</summary><form onSubmit={submit}><label>{t('Amount · TZS','Kiasi · TZS')}<input name="amount" type="number" min="1000" step="1" required/></label><label>{t('Payment method','Njia ya malipo')}<select name="method"><option value="mobile_money">{t('Mobile money','Pesa kwa simu')}</option><option value="bank">{t('Bank','Benki')}</option></select></label><label>{t('Account / phone number','Akaunti / namba ya simu')}<input name="account" minLength={6} maxLength={100} required/></label><p className="compact-copy">{t('The requested amount is reserved from your available balance while the payout is processed.','Kiasi unachoomba kinahifadhiwa kutoka salio linalopatikana wakati malipo yanashughulikiwa.')}</p><button className="btn btn-primary" disabled={busy}>{t('Request payout','Omba malipo')}</button>{message&&<p role="alert">{message}</p>}</form></details>;
+}

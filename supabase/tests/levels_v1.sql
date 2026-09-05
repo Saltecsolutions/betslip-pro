@@ -3,6 +3,7 @@ create temporary table level_ids(k text primary key,id uuid);
 insert into level_ids values('expert',gen_random_uuid()),('buyer',gen_random_uuid());
 insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid',jsonb_build_object('full_name','Level test','requested_role',case when k='expert' then 'tipster' else 'bettor' end,'age_confirmed',true) from level_ids;
 update public.tipsters set verification_status='active' where user_id=(select id from level_ids where k='expert');
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from level_ids cross join unnest(array['terms','privacy','adult','seller']) d ;
 -- Isolated historical fixtures, all rolled back. No test picks become visible.
 alter table public.predictions disable trigger guard_prediction_record;
 insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status,published_at,result,settled_at)

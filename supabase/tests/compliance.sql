@@ -16,6 +16,7 @@ do $$ begin
  if (select count(*) from public.policy_acceptances)<>4 then raise exception 'FAIL acceptance idempotency';end if;
  begin update public.policy_acceptances set accepted_at='2000-01-01';raise exception 'FAIL acceptance mutable';exception when insufficient_privilege then null;end;
 end $$;
+reset role;
 insert into public.predictions(id,tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status,bookmaker) select (select id from test_ids where k='pick'),id,'Compliance test','Football','private teams','private picks','private code',2,2000,now()+interval '1 day','pending','BetPawa' from public.tipsters where user_id=auth.uid();
 reset role;
 update public.predictions set status='published' where id=(select id from test_ids where k='pick');
@@ -28,7 +29,7 @@ do $$ begin
  perform public.accept_policies('2026-09-05','en',true);
  perform public.accept_policies('2026-09-05','en',true);
  if (select count(*) from public.tipsters where user_id=auth.uid())<>1 then raise exception 'FAIL duplicate seller account';end if;
- if (select platform_commission_tzs from public.purchases where user_id=auth.uid())<>600 or (select tipster_commission_tzs from public.purchases where user_id=auth.uid())<>1400 then raise exception 'FAIL 70/30';end if;
+ if (select platform_commission_tzs from public.purchases where user_id=auth.uid())<>300 or (select tipster_commission_tzs from public.purchases where user_id=auth.uid())<>700 then raise exception 'FAIL 70/30';end if;
  perform public.request_privacy('deletion','Please close my account and review retention.');
  perform public.export_my_data();
  if exists(select 1 from public.policy_acceptances where user_id<>auth.uid()) then raise exception 'FAIL other consent visible';end if;

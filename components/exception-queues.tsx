@@ -1,0 +1,8 @@
+'use client';
+import {useEffect,useMemo,useState} from 'react';
+import {createClient} from '@/lib/supabase/client';
+import {useLanguage} from '@/components/ui';
+export function ExceptionQueues(){const db=useMemo(()=>createClient(),[]);const {t}=useLanguage();const [queue,setQueue]=useState('reported');const [rows,setRows]=useState<any[]>([]);const [error,setError]=useState('');const [loading,setLoading]=useState(false);
+ useEffect(()=>{let active=true;setLoading(true);setRows([]);setError('');void db.rpc('exception_queue',{p_queue:queue}).then(({data,error})=>{if(active){setRows(data||[]);setError(error?.message||'');setLoading(false);}});return()=>{active=false;};},[queue,db]);
+ return <section className="panel"><div className="actions"><button className="btn" aria-pressed={queue==='reported'} onClick={()=>setQueue('reported')}>{t('Reported','Imeripotiwa')}</button><button className="btn" aria-pressed={queue==='suspicious'} onClick={()=>setQueue('suspicious')}>{t('Suspicious Activity','Shughuli zinazotia shaka')}</button></div>{error&&<p role="alert">{error}</p>}{loading?<p>{t('Loading…','Inapakia…')}</p>:rows.length?rows.map((r,i)=><article className="support-row" key={`${r.id}-${i}`}><div><h3>{r.title}</h3><p>{r.display_name} · {r.reason} {r.reports?`· ${r.reports}`:''}</p></div></article>):<p>{t('No exceptions in this queue.','Hakuna taarifa kwenye foleni hii.')}</p>}<p className="compact-copy">{t('Pending submissions can be decided in Needs Review. Published records remain locked; finance handles refunds and administrators handle settlement exceptions.','Mikeka inayosubiri huamuliwa kwenye Inahitaji Ukaguzi. Rekodi zilizochapishwa zimefungwa; fedha hushughulikia marejesho na wasimamizi hushughulikia matatizo ya matokeo.')}</p></section>;
+}

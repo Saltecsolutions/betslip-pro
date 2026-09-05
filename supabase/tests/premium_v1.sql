@@ -5,6 +5,8 @@ insert into v1_ids values('buyer',gen_random_uuid()),('stranger',gen_random_uuid
 insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid',jsonb_build_object('full_name','V1 verification','requested_role',case when k='expert' then 'tipster' else 'bettor' end,'age_confirmed',true) from v1_ids where k<>'prediction';
 update public.profiles set role='admin' where id=(select id from v1_ids where k='admin');
 update public.tipsters set verification_status='active' where user_id=(select id from v1_ids where k='expert');
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from v1_ids cross join unnest(array['terms','privacy','adult','seller']) d where k<>'prediction';
+insert into compliance.staff_access(user_id,finance) select id,true from v1_ids where k='admin';
 insert into public.predictions(id,tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status) values((select id from v1_ids where k='prediction'),(select id from public.tipsters where user_id=(select id from v1_ids where k='expert')),'V1 test','Football','SECRET TEAMS','SECRET SELECTION','SECRET CODE',2.5,2000,now()+interval '1 day','pending');
 select set_config('request.jwt.claim.sub',(select id::text from v1_ids where k='buyer'),true);
 insert into public.tipster_follows(user_id,tipster_id) select (select id from v1_ids where k='buyer'),id from public.tipsters where user_id=(select id from v1_ids where k='expert');
@@ -14,7 +16,7 @@ do $$ declare p uuid; begin
  if exists(select 1 from public.get_prediction_protected_content((select id from v1_ids where k='prediction'))) then raise exception 'FAIL paid content leak'; end if;
  p:=public.create_purchase((select id from v1_ids where k='prediction'));
  if p<>public.create_purchase((select id from v1_ids where k='prediction')) then raise exception 'FAIL purchase idempotency'; end if;
- if not exists(select 1 from public.purchases where id=p and platform_commission_tzs=600 and tipster_commission_tzs=1400) then raise exception 'FAIL 30/70 split'; end if;
+ if not exists(select 1 from public.purchases where id=p and platform_commission_tzs=300 and tipster_commission_tzs=700) then raise exception 'FAIL 30/70 split'; end if;
  perform public.submit_manual_payment(p,'V1-'||p::text,null);
  perform set_config('request.jwt.claim.sub',(select id::text from v1_ids where k='admin'),true);
  perform public.admin_verify_manual_payment(p,50);

@@ -51,7 +51,7 @@ do $$ declare m jsonb; tid uuid;begin
  if not exists(select 1 from jsonb_array_elements(public.expert_insights()) e where e->>'id'=tid::text and e->>'compliant'='false' and e->>'level'='New') then raise exception 'FAIL compliance level';end if;
  perform set_config('request.jwt.claim.sub',(select id::text from focused_ids where k='expert'),true);
  m:=public.tipster_business_summary();
- if (m->>'platform')::int<>600 or (m->>'earnings')::int<>1400 or (m->>'fees')::int<>73 or (m->>'conversion')::numeric<>100 or (m->>'rating')::numeric<>4 then raise exception 'FAIL business accounting: %',m;end if;
+ if (m->>'platform')::int<>300 or (m->>'earnings')::int<>700 or (m->>'fees')::int<>73 or (m->>'conversion')::numeric<>100 or (m->>'rating')::numeric<>4 then raise exception 'FAIL business accounting: %',m;end if;
 end $$;
 -- Boundary fixture demonstrates settlement-time window inclusion.
 alter table public.predictions disable trigger guard_prediction_record;

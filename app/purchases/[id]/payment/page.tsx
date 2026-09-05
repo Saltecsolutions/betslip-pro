@@ -39,7 +39,11 @@ export default function ManualPaymentPage() {
   return (
     <main className="container">
       <div className="form panel">
-        <h1>Pay with Selcom Lipa Namba</h1>
+        <h1>Pay / Lipa kwa Selcom</h1>
+        <p>Lipa Namba: <strong>{process.env.NEXT_PUBLIC_SELCOM_LIPA_NUMBER}</strong></p>
+        <p>Merchant / Mfanyabiashara: <strong>{process.env.NEXT_PUBLIC_SELCOM_MERCHANT_NAME}</strong></p>
+        <p>Order / Oda: {purchase.id}</p>
+        {purchase.payment_status === "paid" && <a className="btn btn-primary" href={`/predictions/${purchase.prediction_id}`}>Open prediction / Fungua utabiri</a>}
         <p>Amount / Kiasi: <strong>TZS {Number(purchase.amount_tzs).toLocaleString()}</strong></p>
         <div className="notice">
           <strong>1.</strong> Lipa kupitia Selcom Lipa Namba ya Betslip Pro.<br/>

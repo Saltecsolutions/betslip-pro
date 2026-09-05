@@ -10,6 +10,7 @@ type Profile = {
   full_name: string | null;
   role: "bettor" | "tipster" | "advertiser" | "admin" | "super_admin";
   status: string;
+  requested_role: string | null;
 };
 
 export default function DashboardPage() {
@@ -27,7 +28,7 @@ export default function DashboardPage() {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("id,full_name,role,status")
+        .select("id,full_name,role,status,requested_role")
         .eq("id", authData.user.id)
         .single();
       setProfile(data as Profile | null);
@@ -43,9 +44,9 @@ export default function DashboardPage() {
   if (loading) return <main className="container"><p>Loading...</p></main>;
   if (!profile) return <main className="container"><p>Profile not found.</p></main>;
 
-  const links = profile.role === "tipster"
+  const links = (profile.role === "tipster" || profile.requested_role === "tipster")
     ? [{ href: "/tipster/predictions/new", label: "Add Prediction / Ongeza Prediction" }, { href: "/tipster", label: "Tipster Dashboard" }]
-    : profile.role === "advertiser"
+    : (profile.role === "advertiser" || profile.requested_role === "advertiser")
       ? [{ href: "/advertiser", label: "Advertiser Dashboard" }, { href: "/advertise", label: "Ad Packages" }]
       : profile.role === "admin" || profile.role === "super_admin"
         ? [{ href: "/admin", label: "Admin Panel" }]

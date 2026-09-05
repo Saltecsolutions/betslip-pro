@@ -31,13 +31,13 @@ export default function HomePage() {
           <p className="notice">{t.disclaimer}</p>
         </div>
         <div className="panel">
-          <span className="badge">{t.verified}</span>
-          <h2>Pro Analyst TZ</h2>
-          <p className="muted">30-Day ROI +18% • Win Rate 64% • Avg Odds 1.92</p>
+          <span className="badge">Example profile / Mfano wa profile</span>
+          <h2>Betslip Pro Tipster</h2>
+          <p className="muted">Sample display only — no verified results yet / Mfano tu — hakuna matokeo yaliyothibitishwa bado.</p>
           <div className="grid">
-            <div className="card"><strong>147</strong><div className="muted">Verified Picks</div></div>
-            <div className="card"><strong>86/100</strong><div className="muted">Betslip Pro Score</div></div>
-            <div className="card"><strong>3,820</strong><div className="muted">Followers</div></div>
+            <div className="card"><strong>—</strong><div className="muted">Verified Picks</div></div>
+            <div className="card"><strong>—</strong><div className="muted">Betslip Pro Score</div></div>
+            <div className="card"><strong>—</strong><div className="muted">Followers</div></div>
           </div>
         </div>
       </section>

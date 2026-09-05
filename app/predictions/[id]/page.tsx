@@ -47,30 +47,9 @@ export default function PredictionDetailPage() {
     }
     if (!prediction) return;
 
-    const { data: existing } = await supabase
-      .from("purchases")
-      .select("id,payment_status")
-      .eq("user_id", authData.user.id)
-      .eq("prediction_id", prediction.id)
-      .maybeSingle();
-
-    if (existing) {
-      setMessage(existing.payment_status === "paid" ? "Already purchased / Umeshanunua." : "Payment is pending / Malipo yanasubiri kuthibitishwa.");
-      return;
-    }
-
-    const { error } = await supabase.from("purchases").insert({
-      user_id: authData.user.id,
-      prediction_id: prediction.id,
-      tipster_id: prediction.tipster_id,
-      amount_tzs: prediction.price_tzs,
-      platform_commission_tzs: 0,
-      tipster_commission_tzs: 0,
-      processing_fee_tzs: 0,
-      payment_status: "pending"
-    });
-
-    setMessage(error ? error.message : "Purchase created. Complete payment to unlock / Ununuzi umeanzishwa. Kamilisha malipo kufungua.");
+    const { data: purchaseId, error } = await supabase.rpc("create_purchase", { p_prediction_id: prediction.id });
+    if (error) setMessage(error.message);
+    else router.push(`/purchases/${purchaseId}/payment`);
   }
 
   if (!prediction) return <main className="container"><p>Loading...</p></main>;

@@ -22,6 +22,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [tipsters, setTipsters] = useState<Tipster[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [advertisers,setAdvertisers]=useState<any[]>([]);
   const [message, setMessage] = useState("");
 
   async function load() {
@@ -43,6 +44,8 @@ export default function AdminPage() {
       supabase.from("tipsters").select("id,display_name,verification_status").order("created_at", { ascending: false }),
       supabase.from("predictions").select("id,title,match_name,status").eq("status", "pending").order("created_at", { ascending: false })
     ]);
+    const {data:ads}=await supabase.from("advertisers").select("id,business_name,status");
+    setAdvertisers(ads||[]);
     setTipsters((t || []) as Tipster[]);
     setPredictions((p || []) as Prediction[]);
   }
@@ -68,7 +71,7 @@ export default function AdminPage() {
     <main className="container">
       <section className="panel">
         <div className="brand">BETSLIP <span>PRO</span></div>
-        <h1>Admin Panel</h1>
+        <h1>Admin Panel</h1><a className="btn" href="/admin/payments">Manual payments / Thibitisha malipo</a>
         <p className="muted">Manage tipster verification and prediction moderation.</p>
         {message && <p className="notice">{message}</p>}
       </section>
@@ -89,6 +92,8 @@ export default function AdminPage() {
           ))}
         </div>
       </section>
+
+      <section className="panel"><h2>Advertisers / Watangazaji</h2>{advertisers.map(a=><div className="card" key={a.id}><strong>{a.business_name}</strong><p>{a.status}</p>{["active","rejected","suspended"].map(status=><button className="btn" key={status} onClick={async()=>{const {error}=await supabase.rpc("admin_set_advertiser_status",{p_advertiser_id:a.id,p_status:status});setMessage(error?error.message:"Updated / Imesasishwa");if(!error)await load();}}>{status}</button>)}</div>)}</section>
 
       <section className="panel">
         <h2>Pending Predictions</h2>

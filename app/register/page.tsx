@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Role = "bettor" | "tipster" | "advertiser";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const searchParams = useSearchParams();
   const initialRole = (searchParams.get("role") as Role) || "bettor";
   const [role, setRole] = useState<Role>(initialRole);
@@ -35,7 +35,8 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName, phone, requested_role: role, locale: "sw" },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { full_name: fullName, phone, requested_role: role, locale: "sw", age_confirmed: ageConfirmed },
       },
     });
 
@@ -78,3 +79,5 @@ export default function RegisterPage() {
     </main>
   );
 }
+
+export default function RegisterPage() { return <Suspense fallback={<main>Loading / Inapakia...</main>}><RegisterForm /></Suspense>; }

@@ -11,7 +11,7 @@ type Prediction = {
   match_name: string;
   odds: number | null;
   confidence_level: number | null;
-  price: number;
+  price_tzs: number;
   match_date: string;
 };
 
@@ -24,7 +24,7 @@ export default function PredictionsPage() {
     (async () => {
       const { data } = await supabase
         .from("predictions")
-        .select("id,title,sport,league,match_name,odds,confidence_level,price,match_date")
+        .select("id,title,sport,league,match_name,odds,confidence_level,price_tzs,match_date")
         .eq("status", "published")
         .order("match_date", { ascending: true });
       setItems((data || []) as Prediction[]);
@@ -48,7 +48,7 @@ export default function PredictionsPage() {
               <p>{p.match_name}</p>
               <p className="muted">{p.league || ""}</p>
               <p>Odds: {p.odds ?? "-"} · Confidence: {p.confidence_level ?? "-"}%</p>
-              <strong>TZS {Number(p.price).toLocaleString()}</strong>
+              <strong>TZS {Number(p.price_tzs).toLocaleString()}</strong>
               <a className="btn btn-primary" href={`/predictions/${p.id}`}>View / Angalia</a>
             </article>
           ))}

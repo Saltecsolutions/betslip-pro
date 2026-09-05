@@ -175,4 +175,4 @@ See [COMPLIANCE-OPERATIONS.md](docs/COMPLIANCE-OPERATIONS.md) for current delive
 
 ## V1 automatic pricing and finance completion
 
-See [AI pricing, economics, validation and rollout](docs/AI-PRICING-V1.md). Tipsters no longer enter prices. The studio, exception queues, tipster wallets and partner/admin revenue views use server-enforced rules. The new migration is prepared but not yet applied to production. Run `npm run test:db`, `npm test`, `npm run build` and `npm run typecheck` before release.
+See [AI pricing, economics, validation and rollout](docs/AI-PRICING-V1.md). Tipsters no longer enter prices. The studio, exception queues, tipster wallets and partner/admin revenue views use server-enforced rules. The migration and app are live as of 5 September 2026; see the linked production verification notes for remaining account acceptance and results-provider setup. Run `npm run test:db`, `npm test`, `npm run build` and `npm run typecheck` before release.

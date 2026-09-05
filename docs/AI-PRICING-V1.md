@@ -1,6 +1,6 @@
 # V1 automatic pricing and operations
 
-The current work branch implements server-controlled pricing, automated submission validation, exception review, payout reservations and a complete revenue summary. It is prepared for rollout; the new migration has not been applied to production.
+The current work branch implements server-controlled pricing, automated submission validation, exception review, payout reservations and a complete revenue summary. Production rollout completed on 5 September 2026: PR #1 merged as c6f7d0e2f443b7c5111d2e146a165a8a92e26bcf and Vercel deployment C667W1V4gxpiyvdL3YKjYyHAZE4M reached Ready on www.betslip.co.tz. The migration is recorded in Supabase as 20260905161415_ai_pricing_and_v1_operations. The daily pricing job is active. No legacy withdrawals required reconciliation.
 
 ## Price decisions
 
@@ -55,6 +55,8 @@ Jimmy's verified `jdaking08@gmail.com` account can read `/revenue`, also linked 
 
 ## Rollout and verification
 
+These are the rollout procedure and remaining external setup checks. The database and app deployment steps have been completed.
+
 1. Review and apply only `20260905155722_ai_pricing_and_v1_operations.sql` to the current database after all existing migrations. Historical local filenames differ from some hosted migration IDs; do not blindly replay the whole migration directory against production.
 2. Deploy this branch's app with the existing public Supabase configuration. Apply the migration before switching the UI because client prediction inserts are replaced by an RPC.
 3. Confirm the `betslip-ai-pricing` cron job exists. The isolated test runner stubs Supabase scheduling, storage scaffolding and outbound service integrations; it does not validate hosted scheduling or provider delivery.
@@ -64,3 +66,7 @@ Jimmy's verified `jdaking08@gmail.com` account can read `/revenue`, also linked 
 Local checks: `npm run test:db`, `npm test`, `npm run build`, `npm run typecheck`. The database runner starts isolated PostgreSQL (PGlite), loads the complete schema/migration chain, runs SQL scenarios and rolls them back. No test users, payments, messages or results are written to production. It covers pricing cadence and band/risk caps, forged-price rejection, immutable publications, probation/auto-publication, mapped partial-void settlement, callback replay, refund accounting, payout reservations/retries, partner scope, RLS and legacy business flows. Multi-session load testing and real authenticated browser/provider tests are not claimed.
 
 The live security advisor was inspected. Existing callable SECURITY DEFINER functions are still flagged; their checks remain tested, while new public RPCs use invoker wrappers around guarded private implementations. Private tables intentionally have RLS with no direct client policies. Leaked-password protection is an existing configuration warning. See [function security guidance](https://supabase.com/docs/guides/database/functions) and [password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+## Production verification
+
+The production marketplace loads in Kiswahili with the signed-in owner greeting and honest empty states. Revenue and wallet RPCs were exercised under the existing superadmin authorization in a rolled-back transaction and returned zero totals/empty queues correctly. Anonymous revenue execution and direct client prediction inserts are denied; all engine tables have RLS. The owner account is still redirected to accept current policies before dashboard access. No agreement was accepted on the owner’s behalf. Jimmy’s revenue grant is enabled but his account is not registered yet. The results provider and settlement server credentials remain unconfigured; automated live results are therefore pending that external setup.

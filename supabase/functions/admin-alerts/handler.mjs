@@ -9,6 +9,15 @@ const messages = {
   test: ['Jaribio la notifications / Notifications test', '/admin/alerts'],
 };
 export function emailFor(item) {
+  if(item.kind==='partner_weekly') {
+    const summary=item.summary;
+    const keys=['new_users','publishing_tipsters','published_content','paid_purchases','partnership_requests'];
+    if(!summary || !keys.every(k=>Number.isSafeInteger(summary[k]) && summary[k]>=0) ||
+      !['period_start','period_end'].every(k=>/^\d{4}-\d{2}-\d{2}$/.test(summary[k]))) throw new Error('invalid_weekly_summary');
+    return {from:'Betslip Pro <noreply@betslip.co.tz>',to:['jdaking08@gmail.com'],
+      subject:`Betslip Pro: Muhtasari wa wiki / Weekly update — ${summary.period_start}`,
+      text:`Habari Jimmy,\n\nMuhtasari wa Betslip Pro: ${summary.period_start} hadi ${summary.period_end} (saa za Tanzania).\nWeekly activity summary, Tanzania time.\n\nWatumiaji wapya / New users: ${summary.new_users}\nTipsters waliochapisha / Tipsters who published: ${summary.publishing_tipsters}\nPrediction na Betslip zilizochapishwa / Published content: ${summary.published_content}\nManunuzi yaliyothibitishwa kulipwa / Verified paid purchases: ${summary.paid_purchases}\nMaombi mapya ya partnership / New partnership requests: ${summary.partnership_requests}\n\nHizi ni takwimu za jumla zilizorekodiwa wakati ripoti inaandaliwa. Manunuzi yaliyorejeshewa fedha kabla ya ripoti hayajahesabiwa kama mauzo.\nThese are aggregate figures recorded when the report was prepared; purchases already refunded are excluded from the sales count.\n\nKwa maelezo ya maendeleo na mipango, wasiliana na Salmin.\nFor project progress and plans, contact Salmin.\n\nhttps://www.betslip.co.tz`};
+  }
   const message = messages[item.kind];
   if (!message) throw new Error('unknown_kind');
   return {from:'Betslip Pro <noreply@betslip.co.tz>',to:[recipient],subject:`Betslip Pro: ${message[0]}`,

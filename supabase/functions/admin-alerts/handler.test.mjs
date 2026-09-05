@@ -12,3 +12,11 @@ test('send only to authorized recipient; finish after provider acceptance',async
 for(const status of [429,500,401,422])test(`HTTP ${status} retry classification`,async()=>{const m=mockFetch(status);await createHandler({env,fetchImpl:m.run})(request());assert.equal(m.calls[2].body.p_retry,status===429||status===500);assert.equal(m.calls[2].body.p_provider_id,null);});
 test('lost database response after sending never reports success',async()=>{const m=mockFetch();const r=await createHandler({env,fetchImpl:async(u,o)=>{if(u.endsWith('admin_alerts_finish'))throw Error('offline');return m.run(u,o);}})(request());assert.equal(r.status,503);});
 test('no private event payload or arbitrary link can enter email',()=>{const text=JSON.stringify(emailFor({...item,details:'SECRET KYC',url:'https://evil.invalid',recipient:'attacker@example.com'}));assert.ok(!text.includes('SECRET KYC'));assert.ok(!text.includes('evil.invalid'));assert.ok(!text.includes('attacker@example.com'));});
+test('weekly partner email is restricted to fixed aggregate fields and recipient',()=>{
+ const s={period_start:'2026-08-31',period_end:'2026-09-06',new_users:2,publishing_tipsters:1,published_content:3,paid_purchases:4,partnership_requests:0,kyc:'SECRET',revenue:200000};
+ const mail=emailFor({id:'weekly',kind:'partner_weekly',summary:s});
+ assert.deepEqual(mail.to,['jdaking08@gmail.com']);
+ assert.ok(!JSON.stringify(mail).includes('SECRET'));assert.ok(!JSON.stringify(mail).includes('200000'));
+ assert.ok(!mail.text.includes('/admin'));assert.ok(mail.text.includes('2026-08-31'));
+ assert.throws(()=>emailFor({kind:'partner_weekly',summary:{...s,new_users:'<script>'}}));
+});

@@ -1,0 +1,67 @@
+begin;
+create temp table auto_ids(k text primary key,id uuid);
+insert into auto_ids values('seller',gen_random_uuid()),('reviewer',gen_random_uuid()),('buyer',gen_random_uuid());
+insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id||'@test.invalid',now(),'{}' from auto_ids;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from auto_ids cross join unnest(array['terms','privacy','adult','seller']) d;
+update public.profiles set age_verified=true where id in(select id from auto_ids);
+update public.profiles set role='super_admin' where id=(select id from auto_ids where k='reviewer');
+insert into public.tipsters(user_id,display_name,verification_status) select id,'Trusted test','active' from auto_ids where k='seller';
+insert into compliance.kyc_records(user_id,provider_reference,review_status) select id,'KYC-test-reference','verified' from auto_ids where k='seller';
+insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,odds,match_date,status,created_at)
+select t.id,'Probation '||g,'Football','A vs B','Home wins',2,now()+interval '1 day','pending',now()-interval '1 hour' from public.tipsters t cross join generate_series(1,5) g where user_id=(select id from auto_ids where k='seller');
+update public.predictions set status='published' where title like 'Probation %';
+insert into public.audit_logs(actor_user_id,action,entity_type,entity_id,metadata) select (select id from auto_ids where k='reviewer'),'prediction_review_decision','prediction',id::text,'{"decision":"published"}' from public.predictions where title like 'Probation %';
+grant all on auto_ids to authenticated;
+select set_config('request.jwt.claim.sub',(select id::text from auto_ids where k='seller'),true);
+set local role authenticated;
+do $$declare d jsonb;r jsonb;begin
+ d:=jsonb_build_object('title','Mapped accumulator','sport','Football','match_name','A vs B; C vs D','prediction_text','A and C to win','analysis','Complete independent match selections for testing.','match_date',now()+interval '1 day','odds',6,'selection_count',2,'bookmaker','BetPawa','betslip_code','AUTO-001','selections','[{"event_id":"fixture-a","market_key":"winner","selection":"home","odds":2},{"event_id":"fixture-b","market_key":"winner","selection":"home","odds":3}]'::jsonb);
+ begin perform public.submit_prediction(d||'{"odds":7}');raise exception 'FAIL mapped total mismatch';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+ r:=public.submit_prediction(d);
+ if r->>'status'<>'published' then raise exception 'FAIL trusted auto-publish %',r;end if;
+ insert into auto_ids values('mapped',(r->>'id')::uuid);
+ begin perform public.submit_prediction(d);raise exception 'FAIL throttled duplicate';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+ begin perform public.ingest_selection_result(gen_random_uuid(),'won','unauthorized');raise exception 'FAIL seller settlement';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+alter table public.predictions disable trigger guard_prediction_record;
+update public.predictions set match_date=now()-interval '1 hour' where id=(select id from auto_ids where k='mapped');
+alter table public.predictions enable trigger guard_prediction_record;
+do $$declare a uuid;b uuid;begin
+ select id into a from public.prediction_selections where prediction_id=(select id from auto_ids where k='mapped') and event_id='fixture-a';
+ select id into b from public.prediction_selections where prediction_id=(select id from auto_ids where k='mapped') and event_id='fixture-b';
+ perform public.ingest_selection_result(a,'won','provider-event-a');
+ perform public.ingest_selection_result(a,'won','provider-event-a');
+ if exists(select 1 from public.settlement_events where prediction_id=(select id from auto_ids where k='mapped')) then raise exception 'FAIL early settlement';end if;
+ perform public.ingest_selection_result(b,'void','provider-event-b');
+ perform public.ingest_selection_result(b,'void','provider-event-b');
+ if not exists(select 1 from public.settlement_events where prediction_id=(select id from auto_ids where k='mapped') and result='won' and settled_odds=2) then raise exception 'FAIL partial void effective odds';end if;
+ begin perform public.ingest_selection_result(a,'lost','correction');raise exception 'FAIL correction accepted';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+ begin delete from public.prediction_selections where id=a;raise exception 'FAIL published selection deletion';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+end $$;
+-- Verify/refund one order, preserving the seller's full 70% and reversing platform allocations.
+insert into auto_ids select 'order_prediction',id from public.predictions where title='Probation 1';
+select set_config('request.jwt.claim.sub',(select id::text from auto_ids where k='buyer'),true);
+set local role authenticated;
+insert into auto_ids values('order',public.create_purchase((select id from auto_ids where k='order_prediction')));
+select public.submit_manual_payment((select id from auto_ids where k='order'),'PAYMENT-001',null);
+reset role;
+select set_config('request.jwt.claim.sub',(select id::text from auto_ids where k='reviewer'),true);
+set local role authenticated;
+select public.admin_verify_manual_payment((select id from auto_ids where k='order'),10);
+do $$begin begin perform public.admin_verify_manual_payment((select id from auto_ids where k='order'),10);raise exception 'FAIL double verification';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;end $$;
+select public.make_tipster_earnings_available((select id from auto_ids where k='seller'),700);
+reset role;
+do $$begin if not exists(select 1 from public.audit_logs where action='earnings_released') then raise exception 'FAIL release audit';end if;end $$;
+insert into public.disputes(purchase_id,user_id,reason,details) values((select id from auto_ids where k='order'),(select id from auto_ids where k='buyer'),'content','Test content refund request');
+set local role authenticated;
+do $$declare rows jsonb;begin rows:=public.exception_queue('reported');if jsonb_array_length(rows)<>1 or rows::text like '%PAYMENT-001%' then raise exception 'FAIL reported queue or privacy';end if;end $$;
+reset role;
+select public.admin_resolve_dispute(id,'approved','Approve tested content refund') from public.disputes where purchase_id=(select id from auto_ids where k='order');
+select public.admin_resolve_dispute(id,'refunded','Completed tested content refund','REFUND-001') from public.disputes where purchase_id=(select id from auto_ids where k='order');
+do $$declare s jsonb;begin
+ if (select pending_balance_tzs from public.wallets where user_id=(select id from auto_ids where k='seller'))<>0 then raise exception 'FAIL refund wallet reversal';end if;
+ s:=public.platform_revenue_summary();if (s->>'gross')::int<>0 or (s->>'wht')::int<>0 or (s->>'refunds')::int<>1000 or (s->>'fees')::int<>10 then raise exception 'FAIL refund revenue %',s;end if;
+ if not exists(select 1 from public.ledger_entries where purchase_id=(select id from auto_ids where k='order') and entry_type='platform_wht_reversal' and amount_tzs=-50) then raise exception 'FAIL WHT reversal ledger';end if;
+end $$;
+rollback;

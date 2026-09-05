@@ -10,7 +10,7 @@ Uploaded screenshots are labelled **Uploaded Proof** automatically. They are not
 
 ## New tipster probation
 
-New tipsters should normally have their first **3–5 submissions** routed through manual review. After successful probation, KYC/verification, good conduct and satisfactory platform history, they can receive **Trusted Tipster / Auto-Publish** eligibility.
+New tipsters should normally have their first **five reviewer-approved publications** routed through manual review. After successful probation, KYC/verification, good conduct and satisfactory platform history, they can receive **Trusted Tipster / Auto-Publish** eligibility.
 
 ## Exception queues
 
@@ -26,7 +26,7 @@ A Trusted Tipster submission that passes automated validation should not wait fo
 
 `/review` remains a bilingual authenticated exception-review workspace. Superadmins can enable/revoke scoped reviewer access and every change is audited. Reviewers may inspect flagged/pending submissions, approve/publish or reject with a review note. Snapshot revision checks prevent approving content changed since review. Existing publication immutability applies.
 
-Jimmy's existing reviewer grant remains scoped to review access unless separate finance/admin permissions are granted. Reviewer access by itself does not grant support, finance, KYC or settlement permissions.
+Reviewer access by itself does not grant support, finance, KYC or settlement permissions. The V1 pricing migration adds a separate, aggregate-only revenue view for Jimmy's verified account; it does not grant financial operations access. See AI-PRICING-V1.md.
 
 ## Results
 

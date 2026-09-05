@@ -127,8 +127,7 @@ are present, so no live sports feed is active.
 An operator must map each private `prediction_selections` row to a provider event,
 market and selection before publication. Service-only ingestion records terminal
 results and settles only when the full declared set is complete. Replay is
-idempotent. Mixed won/void accumulators stay pending for manual review with adjusted
-settled odds. Unsupported/unmapped predictions remain pending. Admin-reviewed
+idempotent. Mapped mixed won/void accumulators use the remaining winning-leg odds; unsupported mappings remain in review. Unsupported/unmapped predictions remain pending. Admin-reviewed
 settlements require a public evidence reference and are permanently attributed.
 
 Notifications are in-app: followed-expert publication, settlement, dispute decisions,
@@ -173,3 +172,7 @@ Operational limits: frontend deployment is still required; live scores and a tru
 ## Compliance, privacy and authentication update
 
 See [COMPLIANCE-OPERATIONS.md](docs/COMPLIANCE-OPERATIONS.md) for current delivered functionality, migrations, staff permissions, policy lifecycle, deletion/retention procedures, Google/Apple credentials and callback configuration, verification and launch dependencies. This section supersedes earlier general-admin access and identity-verification descriptions. Frontend deployment is still required.
+
+## V1 automatic pricing and finance completion
+
+See [AI pricing, economics, validation and rollout](docs/AI-PRICING-V1.md). Tipsters no longer enter prices. The studio, exception queues, tipster wallets and partner/admin revenue views use server-enforced rules. The new migration is prepared but not yet applied to production. Run `npm run test:db`, `npm test`, `npm run build` and `npm run typecheck` before release.

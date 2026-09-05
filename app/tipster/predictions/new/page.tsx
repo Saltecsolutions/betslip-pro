@@ -23,19 +23,19 @@ export default function NewPredictionPage() {
 
     const { data: tipster } = await supabase
       .from("tipsters")
-      .select("id,status")
+      .select("id,verification_status")
       .eq("user_id", authData.user.id)
       .single();
 
-    if (!tipster || tipster.status !== "approved") {
+    if (!tipster || tipster.verification_status !== "active") {
       setMessage("Your tipster account must be approved first / Account yako ya tipster lazima iidhinishwe kwanza.");
       setLoading(false);
       return;
     }
 
     const form = new FormData(e.currentTarget);
-    const price = Number(form.get("price") || 0);
-    if (price < 1000 || price > 5000) {
+    const priceTzs = Number(form.get("price") || 0);
+    if (priceTzs < 1000 || priceTzs > 5000) {
       setMessage("Price must be between TZS 1,000 and TZS 5,000.");
       setLoading(false);
       return;
@@ -51,7 +51,7 @@ export default function NewPredictionPage() {
       betslip_code: String(form.get("betslip_code") || ""),
       odds: Number(form.get("odds") || 0) || null,
       confidence_level: Number(form.get("confidence_level") || 0) || null,
-      price,
+      price_tzs: priceTzs,
       category: String(form.get("category") || "single"),
       match_date: String(form.get("match_date") || ""),
       status: "pending"

@@ -1,0 +1,44 @@
+begin;
+create temporary table review_test(k text primary key,id uuid);
+insert into review_test values('reviewer',gen_random_uuid()),('seller',gen_random_uuid()),('other',gen_random_uuid());
+insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id::text||'@test.invalid',now(),'{}' from review_test;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from review_test cross join unnest(array['terms','privacy','adult','seller']) d;
+insert into moderation.reviewers(email,reason) select id::text||'@test.invalid','Rollback reviewer test' from review_test where k='reviewer';
+insert into public.tipsters(user_id,display_name,verification_status) select id,'Review test seller','active' from review_test where k in ('seller','reviewer');
+with q as (insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,match_date,status,odds) select id,'Review test fixture','football','Test A vs B','Test home win',now()+interval '2 days','pending',2 from public.tipsters where user_id=(select id from review_test where k='seller') returning id) insert into review_test select 'prediction',id from q;
+with q as (insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,match_date,status,odds) select id,'Review own fixture','football','Test C vs D','Test away win',now()+interval '2 days','pending',2 from public.tipsters where user_id=(select id from review_test where k='reviewer') returning id) insert into review_test select 'own',id from q;
+grant all on review_test to authenticated;
+select set_config('request.jwt.claim.sub',(select id::text from review_test where k='other'),true);
+set local role authenticated;
+do $$begin
+ if public.prediction_review_access() then raise exception 'FAIL unrelated access';end if;
+ begin perform public.prediction_review('list');raise exception 'FAIL unrelated list';exception when others then if sqlerrm like 'FAIL%' then raise;end if;end;
+end $$;
+select set_config('request.jwt.claim.sub',(select id::text from review_test where k='reviewer'),true);
+do $$declare r jsonb;begin
+ if not public.prediction_review_access() then raise exception 'FAIL confirmed reviewer access';end if;
+ if public.is_admin() then raise exception 'FAIL broad admin access';end if;
+ begin perform public.prediction_review('grant',jsonb_build_object('email','unauthorized@test.invalid','enabled',true,'reason','Unauthorized grant test'));raise exception 'FAIL permission escalation';exception when others then if sqlerrm like 'FAIL%' then raise;end if;end;
+ begin perform public.prediction_review('get',jsonb_build_object('id',(select id from review_test where k='own')));raise exception 'FAIL own review';exception when others then if sqlerrm like 'FAIL%' then raise;end if;end;
+ r:=public.prediction_review('get',jsonb_build_object('id',(select id from review_test where k='prediction')));
+ if r->'prediction'->>'prediction_text'<>'Test home win' then raise exception 'FAIL protected content unavailable';end if;
+ begin perform public.prediction_review('decide',jsonb_build_object('id',(select id from review_test where k='prediction'),'decision','published','reason','Reviewed complete fixture','revision','stale'));raise exception 'FAIL stale revision';exception when others then if sqlerrm like 'FAIL%' then raise;end if;end;
+ perform public.prediction_review('decide',jsonb_build_object('id',(select id from review_test where k='prediction'),'decision','published','reason','Reviewed complete fixture','revision',r->>'revision'));
+ begin perform public.prediction_review('decide',jsonb_build_object('id',(select id from review_test where k='prediction'),'decision','rejected','reason','Cannot change published slip','revision',r->>'revision'));raise exception 'FAIL published mutation';exception when others then if sqlerrm like 'FAIL%' then raise;end if;end;
+end $$;
+reset role;
+do $$begin
+ if not exists(select 1 from public.predictions where id=(select id from review_test where k='prediction') and status='published' and published_at is not null) then raise exception 'FAIL publication';end if;
+ if not exists(select 1 from public.audit_logs where action='prediction_review_decision' and actor_user_id=(select id from review_test where k='reviewer')) then raise exception 'FAIL decision audit';end if;
+end $$;
+update auth.users set email_confirmed_at=null where id=(select id from review_test where k='reviewer');
+set local role authenticated;
+do $$begin if public.prediction_review_access() then raise exception 'FAIL unconfirmed reviewer';end if;end $$;
+reset role;
+update auth.users set email_confirmed_at=now() where id=(select id from review_test where k='reviewer');
+update moderation.reviewers set enabled=false where email=(select id::text||'@test.invalid' from review_test where k='reviewer');
+set local role authenticated;
+do $$begin if public.prediction_review_access() then raise exception 'FAIL revoked reviewer';end if;end $$;
+reset role;
+select 'PASS: confirmed identity, restricted access, no self-review, stale revision, publication, immutability, audit and revocation' as result;
+rollback;

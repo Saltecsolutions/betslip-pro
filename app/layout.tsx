@@ -1,15 +1,5 @@
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Betslip Pro",
-  description: "Tanzania's sports prediction marketplace",
-};
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="sw">
-      <body>{children}</body>
-    </html>
-  );
-}
+import type {Metadata} from 'next';
+import './globals.css';
+import {AppShell} from '@/components/ui';
+export const metadata:Metadata={title:{default:'Betslip Pro — Find. Verify. Follow. Buy.',template:'%s | Betslip Pro'},description:'The sports prediction marketplace. Discover verified experts, compare transparent performance and follow your favourites.'};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><AppShell>{children}</AppShell></body></html>}

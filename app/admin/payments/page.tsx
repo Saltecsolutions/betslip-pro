@@ -1,57 +1,6 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-
-type Purchase = {
-  id:string;
-  amount_tzs:number;
-  platform_commission_tzs:number;
-  tipster_commission_tzs:number;
-  payment_reference:string|null;
-  payment_status:string;
-  payment_submitted_at:string|null;
-};
-
-export default function AdminPaymentsPage(){
-  const supabase = useMemo(() => createClient(), []);
-  const [items,setItems] = useState<Purchase[]>([]);
-  const [message,setMessage] = useState("");
-
-  async function load(){
-    const { data, error } = await supabase.from("purchases")
-      .select("id,amount_tzs,platform_commission_tzs,tipster_commission_tzs,payment_reference,payment_status,payment_submitted_at")
-      .in("payment_status",["submitted","paid"])
-      .order("payment_submitted_at",{ascending:false});
-    if(error) setMessage(error.message); else setItems((data||[]) as Purchase[]);
-  }
-
-  useEffect(()=>{ void load(); },[]);
-
-  async function verify(id:string){
-    setMessage("");
-    const raw = window.prompt("Payment processing fee TZS / Ada ya processing (weka 0 kama haipo)","0");
-    if(raw===null) return;
-    const fee = Math.max(0, Number(raw)||0);
-    const { error } = await supabase.rpc("admin_verify_manual_payment",{p_purchase_id:id,p_processing_fee_tzs:fee});
-    if(error) setMessage(error.message); else { setMessage("Payment verified / Malipo yamethibitishwa."); await load(); }
-  }
-
-  return <main className="container">
-    <section className="panel">
-      <h1>Manual Payments / Malipo ya Manual</h1>
-      <p className="muted">Verify Selcom Lipa Namba payments before unlocking paid content.</p>
-      {message && <p className="notice">{message}</p>}
-    </section>
-    <div className="grid">
-      {items.map(p=><article className="card" key={p.id}>
-        <span className="pill">{p.payment_status}</span>
-        <h3>TZS {Number(p.amount_tzs).toLocaleString()}</h3>
-        <p>Reference: <strong>{p.payment_reference || "-"}</strong></p>
-        <p className="muted">Platform 30%: TZS {Number(p.platform_commission_tzs).toLocaleString()} · Tipster 70%: TZS {Number(p.tipster_commission_tzs).toLocaleString()}</p>
-        {p.payment_status === "submitted" && <button className="btn btn-primary" onClick={()=>verify(p.id)}>Verify payment / Thibitisha</button>}
-      </article>)}
-      {!items.length && <p className="muted">No submitted payments / Hakuna malipo yanayosubiri.</p>}
-    </div>
-  </main>;
-}
+'use client';
+import {FormEvent,useEffect,useState} from 'react';
+import Link from 'next/link';
+import {useAdmin} from '@/lib/use-admin';
+import {Empty,Money,PageHeading,Status,useLanguage} from '@/components/ui';
+export default function Payments(){const {db,ready}=useAdmin();const {t}=useLanguage();const [rows,setRows]=useState<any[]>([]);const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);async function load(){const {data,error}=await db.from('purchases').select('id,amount_tzs,platform_commission_tzs,tipster_commission_tzs,payment_reference,payment_status,processing_fee_tzs').in('payment_status',['submitted','paid']).order('created_at',{ascending:false});setRows(data||[]);if(error)setMessage(error.message)}useEffect(()=>{if(ready)void load()},[ready]);async function verify(e:FormEvent<HTMLFormElement>,id:string){e.preventDefault();setBusy(true);const f=new FormData(e.currentTarget);const {error}=await db.rpc('admin_verify_manual_payment',{p_purchase_id:id,p_processing_fee_tzs:Number(f.get('fee'))});setMessage(error?error.message:t('Payment verified.','Malipo yamethibitishwa.'));if(!error)await load();setBusy(false)}if(!ready)return <main className="container"><div className="skeleton"/></main>;return <main className="container"><PageHeading eyebrow={t('PAYMENT OPERATIONS','USIMAMIZI WA MALIPO')} title={t('Verify before unlocking.','Hakiki kabla ya kufungua.')} description={t('Reconcile the Selcom reference and exact amount before approving a payment.','Linganisha kumbukumbu ya Selcom na kiasi sahihi kabla ya kuidhinisha.')}/><Link className="btn" href="/admin">← {t('Admin workspace','Sehemu ya admin')}</Link>{message&&<p className="notice" role="status">{message}</p>}<section style={{marginTop:24}}>{rows.length?<div className="grid">{rows.map(p=><article className="card" key={p.id}><Status value={p.payment_status}/><h2 style={{marginTop:18}}><Money amount={p.amount_tzs}/></h2><p>{t('Reference','Kumbukumbu')}: <b>{p.payment_reference||'—'}</b></p><div className="data-row"><span className="compact-copy">Betslip Pro · 30%</span><Money amount={p.platform_commission_tzs}/></div><div className="data-row"><span className="compact-copy">Tipster · 70%</span><Money amount={p.tipster_commission_tzs}/></div>{p.payment_status==='submitted'?<form onSubmit={e=>void verify(e,p.id)}><label>{t('Processing fee · TZS','Ada ya muamala · TZS')}<input name="fee" type="number" step="1" min="0" defaultValue="0" required/></label><label className="settings-row"><input type="checkbox" required/>{t('I reconciled the reference and amount.','Nimehakiki kumbukumbu na kiasi.')}</label><button className="btn btn-primary" disabled={busy}>{t('Verify payment','Thibitisha malipo')}</button></form>:<p className="compact-copy">{t('Processing fee','Ada ya muamala')}: <Money amount={p.processing_fee_tzs}/></p>}</article>)}</div>:<Empty icon="shield" title={t('Payments are up to date.','Hakuna malipo yanayosubiri.')} description={t('Submitted payments will appear here for verification.','Malipo yaliyowasilishwa yataonekana hapa kwa uthibitisho.')}/>}</section></main>}

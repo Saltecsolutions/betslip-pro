@@ -1,68 +1,7 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-
-type Profile = {
-  id: string;
-  full_name: string | null;
-  role: "bettor" | "tipster" | "advertiser" | "admin" | "super_admin";
-  status: string;
-  requested_role: string | null;
-};
-
-export default function DashboardPage() {
-  const supabase = useMemo(() => createClient(), []);
-  const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        router.replace("/login");
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("id,full_name,role,status,requested_role")
-        .eq("id", authData.user.id)
-        .single();
-      setProfile(data as Profile | null);
-      setLoading(false);
-    })();
-  }, [router, supabase]);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
-
-  if (loading) return <main className="container"><p>Loading...</p></main>;
-  if (!profile) return <main className="container"><p>Profile not found.</p></main>;
-
-  const links = (profile.role === "tipster" || profile.requested_role === "tipster")
-    ? [{ href: "/tipster/predictions/new", label: "Add Prediction / Ongeza Prediction" }, { href: "/tipster", label: "Tipster Dashboard" }]
-    : (profile.role === "advertiser" || profile.requested_role === "advertiser")
-      ? [{ href: "/advertiser", label: "Advertiser Dashboard" }, { href: "/advertise", label: "Ad Packages" }]
-      : profile.role === "admin" || profile.role === "super_admin"
-        ? [{ href: "/admin", label: "Admin Panel" }]
-        : [{ href: "/predictions", label: "Browse Predictions / Angalia Predictions" }, { href: "/purchases", label: "My Purchases / Nilizonunua" }];
-
-  return (
-    <main className="container">
-      <section className="panel">
-        <div className="brand">BETSLIP <span>PRO</span></div>
-        <h1>Karibu, {profile.full_name || "Member"}</h1>
-        <p className="muted">Role: {profile.role} · Status: {profile.status}</p>
-        <div className="actions">
-          {links.map((item) => <Link className="btn btn-primary" key={item.href} href={item.href}>{item.label}</Link>)}
-          <button className="btn" onClick={logout}>Logout / Toka</button>
-        </div>
-      </section>
-    </main>
-  );
-}
+'use client';
+import {useEffect,useMemo,useState} from 'react';
+import {useRouter} from 'next/navigation';
+import Link from 'next/link';
+import {createClient} from '@/lib/supabase/client';
+import {PageHeading,Icon,Status,useLanguage} from '@/components/ui';
+export default function Dashboard(){const db=useMemo(()=>createClient(),[]);const router=useRouter();const {t}=useLanguage();const [profile,setProfile]=useState<any>(null);const [loading,setLoading]=useState(true);const [counts,setCounts]=useState({purchases:0,follows:0,unread:0});const [error,setError]=useState('');useEffect(()=>{void(async()=>{const {data:{user}}=await db.auth.getUser();if(!user){router.replace('/login?next=/dashboard');return}const [p,pu,f,n]=await Promise.all([db.from('profiles').select('id,full_name,role,status,requested_role').eq('id',user.id).single(),db.from('purchases').select('id',{count:'exact',head:true}).eq('user_id',user.id),db.from('tipster_follows').select('tipster_id',{count:'exact',head:true}).eq('user_id',user.id),db.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null)]);setProfile(p.data);setCounts({purchases:pu.count||0,follows:f.count||0,unread:n.count||0});if(p.error||pu.error||f.error||n.error)setError(t('Some account information could not load. Please refresh.','Baadhi ya taarifa hazijapakia. Tafadhali pakia tena.'));setLoading(false)})()},[db,router]);if(loading)return <main className="container"><div className="skeleton"/></main>;if(!profile)return <main className="container"><p role="alert">{error||t('Profile unavailable.','Wasifu haupatikani.')}</p></main>;const extra=['admin','super_admin'].includes(profile.role)?['/admin',t('Admin workspace','Sehemu ya admin')]:profile.role==='tipster'||profile.requested_role==='tipster'?['/tipster',t('Tipster studio','Studio ya tipster')]:profile.role==='advertiser'||profile.requested_role==='advertiser'?['/advertiser',t('Advertiser portal','Sehemu ya mtangazaji')]:null;return <main className="container"><PageHeading eyebrow={t('YOUR HOME GROUND','UWANJA WAKO')} title={`${t('Welcome back','Karibu tena')}, ${profile.full_name?.split(' ')[0]||t('Member','Mwanachama')}.`} action={<button className="btn btn-secondary" onClick={async()=>{await db.auth.signOut();router.replace('/login')}}>{t('Sign out','Toka')}</button>}/>{error&&<p className="notice" role="alert">{error}</p>}<div className="grid">{[['/purchases','ticket',t('Your slips','Slips zako'),counts.purchases],['/tipsters?following=1','user',t('Experts you follow','Wataalamu unaowafuata'),counts.follows],['/notifications','bell',t('Unread updates','Taarifa mpya'),counts.unread]].map(([href,icon,label,count])=><Link className="card" href={String(href)} key={String(href)}><span className="positive"><Icon name={String(icon)}/></span><span className="stat-label" style={{marginTop:20}}>{label}</span><b className="stat-value">{count}</b></Link>)}</div>{extra&&<div className="feature-banner" style={{marginTop:24}}><div><h3>{extra[1]}</h3><p className="muted">{t('Manage your account and next steps.','Simamia akaunti yako na hatua zinazofuata.')}</p></div><Link className="btn btn-primary" href={extra[0]}>{t('Open workspace','Fungua')}<Icon name="arrow"/></Link></div>}<section className="journey"><div><span className="eyebrow">{t('BETTER INFORMED','TAARIFA BORA')}</span><h2>{t('Your call.\nYour pace.','Uamuzi wako.\nKwa muda wako.')}</h2></div><div className="stack"><Link className="card" href="/predictions"><h3>{t('Explore predictions','Gundua utabiri')} ↗</h3><p className="muted">{t('Check the preview before you buy.','Angalia muhtasari kabla ya kununua.')}</p></Link><Link className="card" href="/protection"><h3>{t('Buyer protection','Ulinzi wa mnunuzi')} ↗</h3><p className="muted">{t('Open a request or track an existing review.','Tuma ombi au fuatilia ukaguzi uliopo.')}</p></Link></div></section></main>}

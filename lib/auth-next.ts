@@ -1,4 +1,8 @@
+/** Only application-owned routes may be used after authentication. */
 export function safeNext(value: string | null | undefined): string {
-  if (!value || !/^\/(predictions\/[0-9a-f-]{36}|dashboard|tipster|advertiser)(\?[^#]*)?$/.test(value) || /[\\\r\n]/.test(value)) return '/dashboard';
+  if (!value || /[\\\r\n]/.test(value) || !value.startsWith('/') || value.startsWith('//')) return '/dashboard';
+  const [path, query] = value.split('?');
+  if (!/^\/(?:dashboard|predictions(?:\/[0-9a-f-]{36})?|tipsters(?:\/[0-9a-f-]{36})?|tipster(?:\/profile|\/predictions\/new)?|purchases(?:\/[0-9a-f-]{36}\/payment)?|notifications|protection|admin(?:\/payments|\/trust)?|advertiser)$/.test(path)) return '/dashboard';
+  if (query && !(/^[^#]*$/.test(query) && (query === 'buy=1' || query === 'following=1'))) return path;
   return value;
 }

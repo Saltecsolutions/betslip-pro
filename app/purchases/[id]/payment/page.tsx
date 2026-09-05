@@ -1,68 +1,7 @@
-"use client";
-
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
-export default function ManualPaymentPage() {
-  const { id } = useParams<{id:string}>();
-  const supabase = useMemo(() => createClient(), []);
-  const [purchase, setPurchase] = useState<any>(null);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("purchases").select("id,amount_tzs,payment_status,payment_reference,prediction_id").eq("id", id).single();
-      setPurchase(data || null);
-    })();
-  }, [id, supabase]);
-
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true); setMessage("");
-    const form = new FormData(e.currentTarget);
-    const reference = String(form.get("reference") || "").trim();
-    const note = String(form.get("note") || "").trim();
-    if (!reference) { setMessage("Enter transaction reference / Weka transaction reference."); setLoading(false); return; }
-    const { error } = await supabase.rpc("submit_manual_payment", { p_purchase_id: id, p_reference: reference, p_note: note || null });
-    if (error) setMessage(error.message);
-    else {
-      setPurchase((p:any) => ({...p,payment_status:"submitted",payment_reference:reference}));
-      setMessage("Payment submitted for verification / Malipo yametumwa kwa uthibitisho.");
-    }
-    setLoading(false);
-  }
-
-  if (!purchase) return <main className="container"><div className="panel"><p>Loading...</p></div></main>;
-
-  return (
-    <main className="container">
-      <div className="form panel">
-        <h1>Pay / Lipa kwa Selcom</h1>
-        <p>Lipa Namba: <strong>{process.env.NEXT_PUBLIC_SELCOM_LIPA_NUMBER}</strong></p>
-        <p>Merchant / Mfanyabiashara: <strong>{process.env.NEXT_PUBLIC_SELCOM_MERCHANT_NAME}</strong></p>
-        <p>Order / Oda: {purchase.id}</p>
-        {purchase.payment_status === "paid" && <a className="btn btn-primary" href={`/predictions/${purchase.prediction_id}`}>Open prediction / Fungua utabiri</a>}
-        <p>Amount / Kiasi: <strong>TZS {Number(purchase.amount_tzs).toLocaleString()}</strong></p>
-        <div className="notice">
-          <strong>1.</strong> Lipa kupitia Selcom Lipa Namba ya Betslip Pro.<br/>
-          <strong>2.</strong> Tumia kiasi kilichoonyeshwa hapo juu.<br/>
-          <strong>3.</strong> Baada ya kulipa, weka transaction reference hapa chini.<br/>
-          <strong>4.</strong> Admin akithibitisha, prediction yako itafunguka.
-        </div>
-        {purchase.payment_status === "pending" ? (
-          <form onSubmit={submit}>
-            <label>Transaction reference / Kumbukumbu ya muamala</label>
-            <input name="reference" required placeholder="e.g. SEL123456789" />
-            <label>Note (optional) / Maelezo</label><textarea name="note" />
-            <button className="btn btn-primary" disabled={loading}>{loading ? "Submitting..." : "I have paid / Nimeshalipa"}</button>
-          </form>
-        ) : (
-          <p className="notice">Status: <strong>{purchase.payment_status}</strong>{purchase.payment_status === "submitted" ? " — waiting for admin verification / inasubiri uthibitisho" : ""}</p>
-        )}
-        {message && <p className="notice">{message}</p>}
-      </div>
-    </main>
-  );
-}
+'use client';
+import {FormEvent,useEffect,useMemo,useState} from 'react';
+import {useParams} from 'next/navigation';
+import Link from 'next/link';
+import {createClient} from '@/lib/supabase/client';
+import {Empty,Icon,Money,Status,useLanguage} from '@/components/ui';
+export default function Payment(){const {id}=useParams<{id:string}>();const db=useMemo(()=>createClient(),[]);const {t}=useLanguage();const [purchase,setPurchase]=useState<any>(null);const [message,setMessage]=useState('');const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);async function load(){const {data:{user}}=await db.auth.getUser();if(!user){window.location.assign(`/login?next=${encodeURIComponent(`/purchases/${id}/payment`)}`);return}const {data,error}=await db.from('purchases').select('id,amount_tzs,payment_status,payment_reference,prediction_id').eq('id',id).single();setPurchase(data);if(error)setMessage(t('Purchase unavailable. Return to your slips and try again.','Ununuzi haupatikani. Rudi kwenye slips zako na ujaribu tena.'));setLoading(false)}useEffect(()=>{void load()},[id]);async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);const f=new FormData(e.currentTarget);const {error}=await db.rpc('submit_manual_payment',{p_purchase_id:id,p_reference:String(f.get('reference')).trim(),p_note:String(f.get('note')||'').trim()||null});setMessage(error?error.message:t('Payment submitted for verification. Refresh the status after review.','Malipo yametumwa kwa uthibitisho. Pakia hali tena baada ya ukaguzi.'));if(!error)await load();setBusy(false)}if(loading)return <main className="container"><div className="skeleton"/></main>;if(!purchase)return <main className="container"><Empty title={t('Purchase unavailable','Ununuzi haupatikani')} description={message}><Link className="btn" href="/purchases">{t('My slips','Slips zangu')}</Link></Empty></main>;return <main className="container"><section className="form panel"><span className="eyebrow">{t('SECURE CHECKOUT','MALIPO SALAMA')}</span><h1>{t('One step to your slip.','Hatua moja kuelekea slip yako.')}</h1><Status value={purchase.payment_status}/><div className="data-row"><span className="muted">{t('Total','Jumla')}</span><b className="stat-value"><Money amount={purchase.amount_tzs}/></b></div>{purchase.payment_status==='pending'&&<><div className="notice"><p>{t('Pay via Selcom Lipa Namba','Lipa kupitia Selcom Lipa Namba')}</p><b className="stat-value">{process.env.NEXT_PUBLIC_SELCOM_LIPA_NUMBER}</b><p>{process.env.NEXT_PUBLIC_SELCOM_MERCHANT_NAME}</p><p className="compact-copy">{t('Pay the exact amount, then submit your transaction reference. An admin verifies payment before unlocking content.','Lipa kiasi kilichoonyeshwa, kisha tuma kumbukumbu ya muamala. Admin huthibitisha malipo kabla ya kufungua maudhui.')}</p></div><form onSubmit={submit}><label>{t('Transaction reference','Kumbukumbu ya muamala')}<input name="reference" required minLength={4} maxLength={128} placeholder="SEL123456789"/></label><label>{t('Note · optional','Maelezo · si lazima')}<textarea name="note" maxLength={2000}/></label><button className="btn btn-primary auth-submit" disabled={busy}>{busy?t('Submitting…','Inatuma…'):t('I have paid','Nimeshalipa')}<Icon name="arrow" size={16}/></button></form></>}{purchase.payment_status==='paid'?<Link className="btn btn-primary auth-submit" href={`/predictions/${purchase.prediction_id}`}>{t('Open my prediction','Fungua utabiri wangu')}<Icon name="lock" size={16}/></Link>:purchase.payment_status!=='pending'&&<div className="notice"><p>{purchase.payment_status==='submitted'?t('Your payment is being reviewed. Content unlocks only after verification.','Malipo yako yanakaguliwa. Maudhui yatafunguliwa baada ya kuthibitishwa.'):t('This payment is closed. Check your protection request for further details.','Malipo haya yamefungwa. Angalia ombi lako la ulinzi kwa maelezo.')}</p><button className="btn btn-secondary" onClick={()=>void load()}>{t('Refresh status','Pakia hali upya')}</button></div>}{message&&<p className="notice" role="status">{message}</p>}<p className="compact-copy" style={{marginTop:22}}>{t('Order','Oda')}: <span style={{overflowWrap:'anywhere'}}>{purchase.id}</span></p><Link href="/protection" className="compact-copy">{t('Need help? Buyer protection','Unahitaji msaada? Ulinzi wa mnunuzi')} ↗</Link></section></main>}

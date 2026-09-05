@@ -84,3 +84,72 @@ Tipster earnings stay pending after admin verification; processing fees are sepa
 Payout execution remains manual and must be reconciled by the operator; no payout provider
 or automatic money transfer is configured. Advertiser applications require admin approval;
 the portal accepts campaigns for review but does not automatically serve or charge for ads.
+
+## Premium V1 redesign — September 5, 2026
+
+The Next.js/Supabase architecture and Selcom manual-verification flow are preserved.
+The application now has a shared midnight-navy/lime design system, stadium artwork,
+EN/SW language preference, mobile navigation, secure prediction previews, tipster
+rankings and public records, account/earnings screens, activity, buyer protection,
+and admin moderation/payment/integrity workspaces.
+
+Apply the two new migrations after the existing migrations. They have already been
+applied to the connected Betslip Pro Supabase project; do not replay them there:
+- `20260905121759_premium_v1.sql`
+- `20260905122045_settlement_and_purchase_hardening.sql`
+
+The direct public grant on `predictions.match_name` is intentionally removed.
+Teams, picks and codes are available only from the guarded purchased-content RPC.
+Older frontend releases that explicitly select `match_name` must be upgraded to
+this version together with these migrations. Published records cannot be deleted,
+changed or hidden; results require an append-only settlement event. Tipster
+suspension blocks new purchases. A refund removes future paid-content access and
+reverses the recorded tipster liability after the manual transfer is reconciled.
+
+### Performance definitions
+
+ROI and profit use one unit per prediction, not customer stake or sales revenue.
+Won predictions return settled odds minus one; losses return minus one; voids
+and pending results are excluded. Rankings for ROI, profit and consistency require
+20 settled wins/losses. Consistency uses the Wilson lower confidence bound.
+Trending uses paid sales in the past 30 days then followers. New & Rising covers
+90-day members ordered by settled sample size. Identity verification is distinct
+from prediction success. Empty records display no invented statistics.
+
+### Results integration
+
+`POST /api/settlement` accepts `{selection_id, result, reference}` from a trusted
+provider adapter with `Authorization: Bearer BETSLIP_SETTLEMENT_SECRET`.
+It requires server-only `SUPABASE_SERVICE_ROLE_KEY` and `BETSLIP_SETTLEMENT_SECRET`.
+The route returns 503 until configured. No provider subscription or credentials
+are present, so no live sports feed is active.
+
+An operator must map each private `prediction_selections` row to a provider event,
+market and selection before publication. Service-only ingestion records terminal
+results and settles only when the full declared set is complete. Replay is
+idempotent. Mixed won/void accumulators stay pending for manual review with adjusted
+settled odds. Unsupported/unmapped predictions remain pending. Admin-reviewed
+settlements require a public evidence reference and are permanently attributed.
+
+Notifications are in-app: followed-expert publication, settlement, dispute decisions,
+and available payouts. Email/push and timed kickoff notifications are not connected.
+Selcom verification, refund transfers and payout transfers remain manual; approving
+an application or request does not send money. Production SMTP and final Auth
+redirect allowlists from the existing launch checklist still need operator setup.
+
+### Verification
+
+`npm run build` checks compilation and TypeScript and renders all static routes.
+`supabase/tests/premium_v1.sql` tests grants, buyer isolation, 30/70, idempotency,
+immutable records, follow/notification access and refund reversal.
+`supabase/tests/settlement_v1.sql` tests Won/Lost/Void aggregation, replays and ROI.
+Tests were executed against the connected database inside rolled-back transactions.
+The security advisor reported no missing-RLS tables; its remaining warnings flag
+intentional public aggregates and guarded SECURITY DEFINER RPCs. The public
+aggregate contains no buyer identities or protected selections.
+
+No browser interaction/visual test was run in this task. Responsive breakpoints,
+keyboard focus, accessible labels and reduced-motion styles were reviewed in source.
+The source is Next.js server output; a Cloudflare Worker adapter is required to
+publish this unchanged architecture through Sites. The standard Node/Vercel build
+remains supported. No public deployment or domain change was performed.

@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import Link from 'next/link';
 import {PageHeading, useLanguage} from '@/components/ui';
 
@@ -10,6 +10,8 @@ export default function FeedbackPage(){
  const {t}=useLanguage();
  const [showForm,setShowForm]=useState(false);
  const [loaded,setLoaded]=useState(false);
+ const formFrame=useRef<HTMLIFrameElement>(null);
+ const frameLoaded=useRef(false);
  return <main className="container">
   <PageHeading eyebrow={t('YOUR VOICE','MAONI YAKO')} title={t('Help improve Betslip Pro.','Tusaidie kuboresha Betslip Pro.')} description={t('Report a problem or share an idea. Your feedback goes directly to our team.','Eleza tatizo au toa pendekezo. Maoni yako yanafika moja kwa moja kwa timu yetu.')}/>
   <section className="panel" style={{maxWidth:850,margin:'0 auto 32px'}}>
@@ -22,7 +24,7 @@ export default function FeedbackPage(){
    </div>
    {showForm&&<>
     {!loaded&&<p role="status" className="muted">{t('Loading form… If it does not appear, use the new-tab link above.','Fomu inafunguka… Isipoonekana, tumia link ya tab mpya hapo juu.')}</p>}
-    <iframe src={`${formUrl}?embedded=true`} title={t('Betslip Pro feedback form','Fomu ya maoni ya Betslip Pro')} onLoad={()=>setLoaded(true)} referrerPolicy="no-referrer" style={{display:'block',width:'100%',height:1050,border:0,borderRadius:12,background:'#fff'}}/>
+    <iframe ref={formFrame} src={`${formUrl}?embedded=true`} title={t('Betslip Pro feedback form','Fomu ya maoni ya Betslip Pro')} onLoad={()=>{setLoaded(true);if(frameLoaded.current)formFrame.current?.scrollIntoView({block:'start'});frameLoaded.current=true;}} referrerPolicy="no-referrer" style={{display:'block',width:'100%',height:1050,border:0,borderRadius:12,background:'#fff',scrollMarginTop:100}}/>
    </>}
    <p className="muted" style={{marginTop:24}}>{t('Progress is tracked internally. If you leave an email, we may contact you for more information.','Hatua zinafuatiliwa na timu ndani ya mfumo. Ukiacha email, tunaweza kuwasiliana nawe tukihitaji maelezo zaidi.')}</p>
    <p><Link href="/protection">{t('Purchase problem or refund?','Tatizo la ununuzi au refund?')}</Link>{' · '}<Link href="/account/privacy">{t('Request access, correction or deletion of personal data','Omba kupata, kusahihisha au kufuta taarifa binafsi')}</Link></p>

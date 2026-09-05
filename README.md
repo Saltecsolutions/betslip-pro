@@ -153,3 +153,23 @@ keyboard focus, accessible labels and reduced-motion styles were reviewed in sou
 The source is Next.js server output; a Cloudflare Worker adapter is required to
 publish this unchanged architecture through Sites. The standard Node/Vercel build
 remains supported. No public deployment or domain change was performed.
+
+## Focused V1 completion — 5 September 2026
+
+The current mobile home order is greeting/search → upcoming published games → featured slip → Top Verified → Trending Predictions → Explore Marketplace. Mobile navigation is Home, Explore, Betslips, Activity, Profile. The existing stadium artwork and sports design system are preserved.
+
+`20260905123311_focused_v1_completion.sql` adds server-assigned publication timestamps, append-only settlement/audit evidence, locked selection mappings, public analysis and optional self-reported confidence, purchase-backed ratings, compliance reviews, and aggregate discovery/profile/business RPCs. Applied to the existing Betslip Pro Supabase project. Published legacy picks are not rewritten.
+
+Performance windows are 7D/30D/90D/All Time by settlement timestamp. One unit per won/lost slip; voids are shown in settled totals but excluded from ROI/win-rate denominators. Effective settlement odds handle partial void adjustments without rewriting published odds. Average odds are the original published odds of decided picks. Recent form is newest first. Levels and thresholds are visible in the profile; identity verification is separate from a performance level.
+
+Business conversion means paid orders / created non-refunded orders, not visitor conversion. Ratings are immutable, one per paid purchase, and refunded purchases are excluded from aggregate ratings. Revenue continues to use the fixed 70% tipster / 30% platform split; processing fees remain a separate ledger entry and total.
+
+Integrity flags cover unusually high win rate/ROI, near-kickoff publication, buyer disputes and overdue settlements. Flags request human review and do not themselves prove fraud. Compliance holds remove discovery eligibility/earned levels; account suspension remains the separate control to stop selling. The historic record stays visible.
+
+Validation: production build and TypeScript checks pass. Transactional hosted SQL suites `premium_v1.sql`, `settlement_v1.sql`, `focused_v1.sql`, and `levels_v1.sql` pass. Fixtures are rolled back; zero test users remain. Do not run fixture suites as user traffic: tests temporarily lock tables for historical fixtures. Browser QA covered desktop, 390px and 320px mobile, English/Kiswahili, populated card/metric fixtures, period controls and overflow. The temporary QA page is not shipped.
+
+Operational limits: frontend deployment is still required; live scores and a trusted results-provider adapter are not configured. Unmapped results remain pending for evidence-based admin settlement. Selcom verification/payout operations remain the existing manual workflow; no live payment was charged in QA. Browser verification of authenticated buyer/admin journeys was limited to auth gates, while their data/authorization paths were verified transactionally in SQL.
+
+## Compliance, privacy and authentication update
+
+See [COMPLIANCE-OPERATIONS.md](docs/COMPLIANCE-OPERATIONS.md) for current delivered functionality, migrations, staff permissions, policy lifecycle, deletion/retention procedures, Google/Apple credentials and callback configuration, verification and launch dependencies. This section supersedes earlier general-admin access and identity-verification descriptions. Frontend deployment is still required.

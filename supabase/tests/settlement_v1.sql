@@ -3,8 +3,9 @@ create temporary table result_ids(k text,id uuid);
 insert into result_ids values('expert',gen_random_uuid()),('won',gen_random_uuid()),('lost',gen_random_uuid()),('void',gen_random_uuid());
 insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid','{"full_name":"Settlement verification","requested_role":"tipster","age_confirmed":true}' from result_ids where k='expert';
 update public.tipsters set verification_status='active' where user_id=(select id from result_ids where k='expert');
-insert into public.predictions(id,tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status,published_at) select id,(select id from public.tipsters where user_id=(select id from result_ids where k='expert')),k,'Football','Secret teams','Secret selection','Secret code',2,2000,now()+interval '1 second','published',now() from result_ids where k<>'expert';
+insert into public.predictions(id,tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status) select id,(select id from public.tipsters where user_id=(select id from result_ids where k='expert')),k,'Football','Secret teams','Secret selection','Secret code',2,2000,now()+interval '1 second','pending' from result_ids where k<>'expert';
 insert into public.prediction_selections(prediction_id,event_id,market_key,selection,odds) select id,'fixture-'||id::text,'match_winner','home',2 from result_ids where k<>'expert';
+update public.predictions set status='published',published_at=now() where id in(select id from result_ids where k<>'expert');
 -- PostgreSQL now() is transaction-stable. Set fixture dates behind transaction time
 -- with the guard temporarily disabled in this rolled-back, locked transaction only.
 alter table public.predictions disable trigger guard_prediction_record;

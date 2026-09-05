@@ -1,0 +1,27 @@
+begin;
+create temporary table governance_ids(k text primary key,id uuid);
+insert into governance_ids values('super',gen_random_uuid()),('subject',gen_random_uuid());
+insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id::text||'@test.invalid',now(),'{}'::jsonb from governance_ids;
+update public.profiles set role='super_admin' where id=(select id from governance_ids where k='super');
+grant select on governance_ids to authenticated;
+select set_config('request.jwt.claim.sub',(select id::text from governance_ids where k='super'),true);
+set local role authenticated;
+do $$ declare uid uuid;n integer;begin
+ select id into uid from governance_ids where k='subject';
+ begin perform public.admin_compliance_setting('tax','{"status":"confirmed","reference":"Written test evidence"}','Test invalid tax configuration');raise exception 'FAIL incomplete tax confirmation';exception when others then if sqlerrm='FAIL incomplete tax confirmation' then raise;end if;end;
+ begin perform public.admin_compliance_setting('pdpc','{"status":"confirmed","reference":""}','Test no approval evidence');raise exception 'FAIL no evidence';exception when others then if sqlerrm='FAIL no evidence' then raise;end if;end;
+ perform public.admin_compliance_setting('operator','{"status":"confirmed","reference":"Fixture operator verification","legal_name":"Test Operator","address":"Fixture address","privacy_contact":"privacy@test.invalid"}','Verify public contact projection');
+ if public.operator_contact()->>'legal_name'<>'Test Operator' then raise exception 'FAIL operator contact';end if;
+ perform public.admin_kyc_reference(uid,'fixture-provider-reference','verified',now()-interval '1 day',true,'Test KYC record with legal hold');
+ if not exists(select 1 from jsonb_array_elements(public.admin_compliance_read('kyc','Test permission controlled reference read')) r where r->>'user_id'=uid::text) then raise exception 'FAIL KYC read';end if;
+ perform public.admin_compliance_setting('retention','{"status":"confirmed","reference":"Fixture approved schedule","schedule":"Fixture references expire at the reviewed retain_until timestamp; holds prevent deletion."}','Set transactional retention fixture');
+ n:=public.admin_retention_cleanup('Transactional cleanup verifies a legal hold is respected.');
+ if not exists(select 1 from jsonb_array_elements(public.admin_compliance_read('kyc','Verify retained held reference')) r where r->>'user_id'=uid::text) then raise exception 'FAIL legal hold';end if;
+ perform public.admin_kyc_reference(uid,'fixture-provider-reference','verified',now()-interval '1 day',false,'Release test-only legal hold');
+ n:=public.admin_retention_cleanup('Transactional cleanup verifies expiration after hold release.');
+ if n<1 or exists(select 1 from jsonb_array_elements(public.admin_compliance_read('kyc','Verify expired reference removed')) r where r->>'user_id'=uid::text) then raise exception 'FAIL retention cleanup';end if;
+ if has_function_privilege('anon','public.admin_kyc_reference(uuid,text,text,timestamptz,boolean,text)','execute') then raise exception 'FAIL anonymous KYC mutation';end if;
+end $$;
+reset role;
+select 'PASS: configuration validation, public contact projection, KYC review/read, legal hold and expiry cleanup' as result;
+rollback;

@@ -11,8 +11,9 @@ set local role authenticated;
 do $$ begin
  begin insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status) select id,'Test','Football','private','private','private',2,2000,now()+interval '1 day','pending' from public.tipsters where user_id=auth.uid(); raise exception 'FAIL no seller consent'; exception when others then if sqlerrm='FAIL no seller consent' then raise;end if;end;
  begin perform public.accept_policies('old','en',false);raise exception 'FAIL old version';exception when others then if sqlerrm='FAIL old version' then raise;end if;end;
- perform public.accept_policies('2026-09-05','sw',true);
- perform public.accept_policies('2026-09-05','sw',true);
+ begin perform public.accept_policies('2026-09-05','sw',true);raise exception 'FAIL outdated seller agreement';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+ perform public.accept_policies('2026-09-05-v2','sw',true);
+ perform public.accept_policies('2026-09-05-v2','sw',true);
  if (select count(*) from public.policy_acceptances)<>4 then raise exception 'FAIL acceptance idempotency';end if;
  begin update public.policy_acceptances set accepted_at='2000-01-01';raise exception 'FAIL acceptance mutable';exception when insufficient_privilege then null;end;
 end $$;
@@ -24,12 +25,12 @@ select set_config('request.jwt.claim.sub',(select id::text from test_ids where k
 set local role authenticated;
 do $$ begin
  begin perform public.create_purchase((select id from test_ids where k='pick'));raise exception 'FAIL purchase bypass';exception when others then if sqlerrm='FAIL purchase bypass' then raise;end if;end;
- perform public.accept_policies('2026-09-05','en',false);
+ perform public.accept_policies('2026-09-05-v2','en',false);
  perform public.create_purchase((select id from test_ids where k='pick'));
- perform public.accept_policies('2026-09-05','en',true);
- perform public.accept_policies('2026-09-05','en',true);
+ perform public.accept_policies('2026-09-05-v2','en',true);
+ perform public.accept_policies('2026-09-05-v2','en',true);
  if (select count(*) from public.tipsters where user_id=auth.uid())<>1 then raise exception 'FAIL duplicate seller account';end if;
- if (select platform_commission_tzs from public.purchases where user_id=auth.uid())<>300 or (select tipster_commission_tzs from public.purchases where user_id=auth.uid())<>700 then raise exception 'FAIL 70/30';end if;
+ if (select platform_commission_tzs from public.purchases where user_id=auth.uid())<>600 or (select tipster_commission_tzs from public.purchases where user_id=auth.uid())<>400 then raise exception 'FAIL 40/60';end if;
  perform public.request_privacy('deletion','Please close my account and review retention.');
  perform public.export_my_data();
  if exists(select 1 from public.policy_acceptances where user_id<>auth.uid()) then raise exception 'FAIL other consent visible';end if;
@@ -73,8 +74,8 @@ do $$ begin
  if found then raise exception 'FAIL suspended profile change';end if;
  update public.tipsters set display_name='Resurrected' where user_id=auth.uid();
  if found then raise exception 'FAIL suspended public profile change';end if;
- begin perform public.accept_policies('2026-09-05','en',false);raise exception 'FAIL closed account accept';exception when others then if sqlerrm='FAIL closed account accept' then raise;end if;end;
+ begin perform public.accept_policies('2026-09-05-v2','en',false);raise exception 'FAIL closed account accept';exception when others then if sqlerrm='FAIL closed account accept' then raise;end if;end;
 end $$;
 reset role;
-select 'PASS: consent gates, immutable acceptance, identity version, 70/30, own-data RLS, admin scope separation, audited reads, restriction and preserved records' as result;
+select 'PASS: consent gates, immutable acceptance, identity version, 40/60, own-data RLS, admin scope separation, audited reads, restriction and preserved records' as result;
 rollback;

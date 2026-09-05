@@ -2,7 +2,7 @@ begin;
 create temp table auto_ids(k text primary key,id uuid);
 insert into auto_ids values('seller',gen_random_uuid()),('reviewer',gen_random_uuid()),('buyer',gen_random_uuid());
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id||'@test.invalid',now(),'{}' from auto_ids;
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from auto_ids cross join unnest(array['terms','privacy','adult','seller']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from auto_ids cross join unnest(array['terms','privacy','adult','seller']) d;
 update public.profiles set age_verified=true where id in(select id from auto_ids);
 update public.profiles set role='super_admin' where id=(select id from auto_ids where k='reviewer');
 insert into public.tipsters(user_id,display_name,verification_status) select id,'Trusted test','active' from auto_ids where k='seller';
@@ -50,7 +50,7 @@ select set_config('request.jwt.claim.sub',(select id::text from auto_ids where k
 set local role authenticated;
 select public.admin_verify_manual_payment((select id from auto_ids where k='order'),10);
 do $$begin begin perform public.admin_verify_manual_payment((select id from auto_ids where k='order'),10);raise exception 'FAIL double verification';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;end $$;
-select public.make_tipster_earnings_available((select id from auto_ids where k='seller'),700);
+select public.make_tipster_earnings_available((select id from auto_ids where k='seller'),400);
 reset role;
 do $$begin if not exists(select 1 from public.audit_logs where action='earnings_released') then raise exception 'FAIL release audit';end if;end $$;
 insert into public.disputes(purchase_id,user_id,reason,details) values((select id from auto_ids where k='order'),(select id from auto_ids where k='buyer'),'content','Test content refund request');

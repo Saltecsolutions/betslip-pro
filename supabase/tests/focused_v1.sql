@@ -4,7 +4,7 @@ insert into focused_ids values('expert',gen_random_uuid()),('buyer',gen_random_u
 insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid',jsonb_build_object('full_name','Focused V1 test','requested_role',case when k='expert' then 'tipster' else 'bettor' end,'age_confirmed',true) from focused_ids where k<>'p';
 update public.profiles set role='admin' where id=(select id from focused_ids where k='admin');
 update public.tipsters set verification_status='active' where user_id=(select id from focused_ids where k='expert');
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from focused_ids cross join unnest(array['terms','privacy','adult','seller']) d where k<>'p';
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from focused_ids cross join unnest(array['terms','privacy','adult','seller']) d where k<>'p';
 insert into compliance.staff_access(user_id,finance) select id,true from focused_ids where k='admin';
 insert into public.predictions(id,tipster_id,title,sport,match_name,prediction_text,betslip_code,odds,price_tzs,match_date,status,analysis,confidence) values((select id from focused_ids where k='p'),(select id from public.tipsters where user_id=(select id from focused_ids where k='expert')),'Test preview','Football','SECRET TEAMS','SECRET PICKS','SECRET CODE',3,2000,now()+interval '1 day','pending','Short test analysis without protected selections.',65);
 insert into public.prediction_selections(prediction_id,event_id,market_key,selection,odds) select id,'fixture','winner','home',3 from focused_ids where k='p';
@@ -51,7 +51,7 @@ do $$ declare m jsonb; tid uuid;begin
  if not exists(select 1 from jsonb_array_elements(public.expert_insights()) e where e->>'id'=tid::text and e->>'compliant'='false' and e->>'level'='New') then raise exception 'FAIL compliance level';end if;
  perform set_config('request.jwt.claim.sub',(select id::text from focused_ids where k='expert'),true);
  m:=public.tipster_business_summary();
- if (m->>'platform')::int<>300 or (m->>'earnings')::int<>700 or (m->>'fees')::int<>73 or (m->>'conversion')::numeric<>100 or (m->>'rating')::numeric<>4 then raise exception 'FAIL business accounting: %',m;end if;
+ if (m->>'platform')::int<>600 or (m->>'earnings')::int<>400 or (m->>'fees')::int<>73 or (m->>'conversion')::numeric<>100 or (m->>'rating')::numeric<>4 then raise exception 'FAIL business accounting: %',m;end if;
 end $$;
 -- Boundary fixture demonstrates settlement-time window inclusion.
 alter table public.predictions disable trigger guard_prediction_record;

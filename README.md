@@ -7,8 +7,8 @@ Betslip Pro is a bilingual (Kiswahili/English) sports prediction marketplace for
 - Roles: bettor, tipster, advertiser, admin, super_admin.
 - Tipsters must be approved before publishing paid predictions.
 - Paid betslip codes stay locked until a successful purchase is verified.
-- Marketplace split: 30% Betslip Pro / 70% tipster.
-- Payment-processing fees are recorded separately and do not change the 30/70 marketplace split.
+- Marketplace split: 60% Betslip Pro / 40% tipster.
+- Payment-processing fees are recorded separately and do not change the 60/40 marketplace split.
 - Sponsored placements must be clearly labelled and never alter verified tipster performance metrics or organic rankings.
 - User-facing product supports Kiswahili and English.
 - 18+ and responsible prediction/gambling disclaimers are mandatory.
@@ -35,7 +35,7 @@ Betslip Pro is a bilingual (Kiswahili/English) sports prediction marketplace for
 - SW/EN translation foundation.
 - Real Supabase registration flow for bettor, tipster and advertiser requests.
 - Database schema for profiles, tipsters, predictions, purchases, wallets, withdrawals, ledger, advertisers, campaigns and audit logs.
-- Automatic 30/70 marketplace commission calculation at database level.
+- Automatic 60/40 marketplace commission calculation at database level.
 - Row-level security foundation.
 - Advertise on Betslip Pro page and Starter/Growth/Premium package structure.
 
@@ -139,7 +139,7 @@ redirect allowlists from the existing launch checklist still need operator setup
 ### Verification
 
 `npm run build` checks compilation and TypeScript and renders all static routes.
-`supabase/tests/premium_v1.sql` tests grants, buyer isolation, 30/70, idempotency,
+`supabase/tests/premium_v1.sql` tests grants, buyer isolation, 60/40, idempotency,
 immutable records, follow/notification access and refund reversal.
 `supabase/tests/settlement_v1.sql` tests Won/Lost/Void aggregation, replays and ROI.
 Tests were executed against the connected database inside rolled-back transactions.
@@ -161,7 +161,7 @@ The current mobile home order is greeting/search â†’ upcoming published games â†
 
 Performance windows are 7D/30D/90D/All Time by settlement timestamp. One unit per won/lost slip; voids are shown in settled totals but excluded from ROI/win-rate denominators. Effective settlement odds handle partial void adjustments without rewriting published odds. Average odds are the original published odds of decided picks. Recent form is newest first. Levels and thresholds are visible in the profile; identity verification is separate from a performance level.
 
-Business conversion means paid orders / created non-refunded orders, not visitor conversion. Ratings are immutable, one per paid purchase, and refunded purchases are excluded from aggregate ratings. Revenue continues to use the fixed 70% tipster / 30% platform split; processing fees remain a separate ledger entry and total.
+Business conversion means paid orders / created non-refunded orders, not visitor conversion. Ratings are immutable, one per paid purchase, and refunded purchases are excluded from aggregate ratings. Revenue continues to use the fixed 40% tipster / 60% platform split; processing fees remain a separate ledger entry and total.
 
 Integrity flags cover unusually high win rate/ROI, near-kickoff publication, buyer disputes and overdue settlements. Flags request human review and do not themselves prove fraud. Compliance holds remove discovery eligibility/earned levels; account suspension remains the separate control to stop selling. The historic record stays visible.
 

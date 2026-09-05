@@ -43,7 +43,7 @@ Needs Review exposes validation reasons and retains snapshot revision checks. Re
 
 ## Economics and wallets
 
-Orders snapshot the 70% tipster / 30% platform split. Default WHT allocation is **5 percentage points of gross**, inside the platform share, leaving 25% before processing costs. This implements the agreed allocation and is not confirmation of a statutory tax treatment or remittance. `configure_wht_allocation` requires finance plus configuration permission, validates 0–3,000 basis points, and audits changes. Historical snapshots never change.
+Orders snapshot the 40% tipster / 60% platform split. Default WHT allocation is **5 percentage points of gross**, inside the platform share, leaving 55% before processing costs. This implements the agreed allocation and is not confirmation of a statutory tax treatment or remittance. `configure_wht_allocation` requires finance plus configuration permission, validates 0–3,000 basis points, and audits changes. Historical snapshots never change.
 
 Revenue totals aggregate the full purchase history, excluding unpaid submissions and refunded sales. Submitted amounts, refunds, processing fees and completed tipster payouts are separate. Refunds reverse the original platform/WHT allocations; processing costs remain expenses. Ledger allocation rows are subdivisions of the gross platform commission and must not be added to it again.
 
@@ -70,3 +70,11 @@ The live security advisor was inspected. Existing callable SECURITY DEFINER func
 ## Production verification
 
 The production marketplace loads in Kiswahili with the signed-in owner greeting and honest empty states. Revenue and wallet RPCs were exercised under the existing superadmin authorization in a rolled-back transaction and returned zero totals/empty queues correctly. Anonymous revenue execution and direct client prediction inserts are denied; all engine tables have RLS. The owner account is still redirected to accept current policies before dashboard access. No agreement was accepted on the owner’s behalf. Jimmy’s revenue grant is enabled but his account is not registered yet. The results provider and settlement server credentials remain unconfigured; automated live results are therefore pending that external setup.
+
+## Revised seller share
+
+The 20260905162401_tipster_forty_percent migration changes new orders to 40% tipster / 60% platform. At the default WHT allocation, TZS 1,000 yields TZS 400 to the tipster, TZS 50 WHT allocation and TZS 550 platform net before fees. The platform share is rounded to whole TZS and the tipster receives the remainder. Existing order amounts, wallet credits and refund reversals retain their recorded allocation. Aggregate dashboard labels do not apply today's percentage to historical totals.
+
+Seller agreement version 2026-09-05-v2 requires fresh explicit seller acceptance. Base Terms, Privacy and adult notice acceptances remain valid at 2026-09-05. The API rejects old seller acceptance payloads; no acceptance is recorded automatically. The public policy RPCs remain invoker wrappers around the existing private implementations.
+
+The local CLI could not create a file because its telemetry write was sandbox-restricted. The SQL was tested as an upgrade, applied through Supabase, then archived under the migration version returned by Supabase. Do not replay older hosted migrations.

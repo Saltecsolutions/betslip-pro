@@ -14,7 +14,7 @@ do $$ begin
 end $$;
 update public.profiles set role='super_admin' where id=current_setting('test.admin')::uuid;
 update public.tipsters set verification_status='active' where user_id=current_setting('test.tipster')::uuid;
-insert into public.policy_acceptances(user_id,document,version,locale) select current_setting(k)::uuid,d,'2026-09-05','en' from unnest(array['test.buyer','test.tipster','test.admin']) k cross join unnest(array['terms','privacy','adult','seller']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select current_setting(k)::uuid,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from unnest(array['test.buyer','test.tipster','test.admin']) k cross join unnest(array['terms','privacy','adult','seller']) d;
 insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,betslip_code,price_tzs,match_date,status,odds)
 select id,'Test','Football','Test match','Protected analysis','SECRET-TEST',1001,now()+interval '1 day','pending',2 from public.tipsters where user_id=current_setting('test.tipster')::uuid;
 select set_config('test.prediction',(select id::text from public.predictions where title='Test' and tipster_id=(select id from public.tipsters where user_id=current_setting('test.tipster')::uuid)),true);
@@ -42,8 +42,8 @@ set local role authenticated;
 select public.admin_verify_manual_payment(current_setting('test.purchase')::uuid,25);
 reset role;
 do $$ begin
- if not exists(select 1 from public.purchases where id=current_setting('test.purchase')::uuid and platform_commission_tzs=300 and tipster_commission_tzs=700 and processing_fee_tzs=25 and payment_status='paid') then raise exception 'Split failure';end if;
- if (select pending_balance_tzs from public.wallets where user_id=current_setting('test.tipster')::uuid)<>700 then raise exception 'Wallet credit failure';end if;
+ if not exists(select 1 from public.purchases where id=current_setting('test.purchase')::uuid and platform_commission_tzs=600 and tipster_commission_tzs=400 and processing_fee_tzs=25 and payment_status='paid') then raise exception 'Split failure';end if;
+ if (select pending_balance_tzs from public.wallets where user_id=current_setting('test.tipster')::uuid)<>400 then raise exception 'Wallet credit failure';end if;
  if (select count(*) from public.ledger_entries where purchase_id=current_setting('test.purchase')::uuid)<>5 then raise exception 'Ledger failure';end if;
 end $$;
 select set_config('request.jwt.claims',json_build_object('sub',current_setting('test.buyer'),'role','authenticated')::text,true);

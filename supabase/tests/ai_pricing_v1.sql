@@ -2,7 +2,7 @@ begin;
 create temp table ids(k text primary key,id uuid);
 insert into ids values('seller',gen_random_uuid()),('buyer',gen_random_uuid()),('admin',gen_random_uuid());
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id||'@test.invalid',now(),'{}' from ids;
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from ids cross join unnest(array['terms','privacy','adult','seller']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from ids cross join unnest(array['terms','privacy','adult','seller']) d;
 update public.profiles set role='super_admin' where id=(select id from ids where k='admin');
 insert into public.tipsters(user_id,display_name,verification_status) select id,'Pricing test','active' from ids where k='seller';
 insert into ids select 'tid',id from public.tipsters where user_id=(select id from ids where k='seller');
@@ -53,11 +53,11 @@ values((select id from ids where k='buyer'),(select id from ids where k='first')
 select set_config('request.jwt.claim.sub',(select id::text from ids where k='admin'),true);
 set local role authenticated;
 do $$declare s jsonb;begin
- s:=public.platform_revenue_summary();if (s->>'gross')::int<>25000 or (s->>'tipster')::int<>17500 or (s->>'wht')::int<>1250 or (s->>'platformNet')::int<>6250 then raise exception 'FAIL revenue %',s;end if;
+ s:=public.platform_revenue_summary();if (s->>'gross')::int<>25000 or (s->>'tipster')::int<>10000 or (s->>'wht')::int<>1250 or (s->>'platformNet')::int<>13750 then raise exception 'FAIL revenue %',s;end if;
  perform public.configure_wht_allocation(600,'Test allocation policy change');
 end $$;
 reset role;
-do $$begin if exists(select 1 from public.purchases where wht_bps<>500 or wht_allocation_tzs<>50 or platform_net_tzs<>250) then raise exception 'FAIL historical allocation changed';end if;end $$;
+do $$begin if exists(select 1 from public.purchases where wht_bps<>500 or wht_allocation_tzs<>50 or platform_net_tzs<>550) then raise exception 'FAIL historical allocation changed';end if;end $$;
 -- Reservation and processing are atomic; retry cannot debit a wallet twice.
 update public.wallets set available_balance_tzs=2000 where user_id=(select id from ids where k='seller');
 select set_config('request.jwt.claim.sub',(select id::text from ids where k='seller'),true);

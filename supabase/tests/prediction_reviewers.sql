@@ -2,7 +2,7 @@ begin;
 create temporary table review_test(k text primary key,id uuid);
 insert into review_test values('reviewer',gen_random_uuid()),('seller',gen_random_uuid()),('other',gen_random_uuid());
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,id::text||'@test.invalid',now(),'{}' from review_test;
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from review_test cross join unnest(array['terms','privacy','adult','seller']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from review_test cross join unnest(array['terms','privacy','adult','seller']) d;
 insert into moderation.reviewers(email,reason) select id::text||'@test.invalid','Rollback reviewer test' from review_test where k='reviewer';
 insert into public.tipsters(user_id,display_name,verification_status) select id,'Review test seller','active' from review_test where k in ('seller','reviewer');
 with q as (insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,match_date,status,odds) select id,'Review test fixture','football','Test A vs B','Test home win',now()+interval '2 days','pending',2 from public.tipsters where user_id=(select id from review_test where k='seller') returning id) insert into review_test select 'prediction',id from q;

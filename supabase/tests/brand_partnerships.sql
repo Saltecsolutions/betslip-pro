@@ -4,7 +4,7 @@ insert into partnership_test_ids values('owner',gen_random_uuid()),('other',gen_
 insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid','{}'::jsonb from partnership_test_ids;
 update public.profiles set role='admin',status='active' where id=(select id from partnership_test_ids where k='admin');
 update public.profiles set status='active' where id in(select id from partnership_test_ids);
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from partnership_test_ids cross join unnest(array['terms','privacy','adult']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from partnership_test_ids cross join unnest(array['terms','privacy','adult']) d;
 grant select on partnership_test_ids to authenticated;
 select set_config('request.jwt.claim.sub',(select id::text from partnership_test_ids where k='owner'),true);
 set local role authenticated;

@@ -2,7 +2,7 @@ begin;
 create temp table access_ids(k text primary key,id uuid);
 insert into access_ids values('partner',gen_random_uuid()),('other',gen_random_uuid());
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) select id,case when k='partner' then 'jdaking08@gmail.com' else id||'@test.invalid' end,now(),'{}' from access_ids;
-insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from access_ids cross join unnest(array['terms','privacy','adult']) d;
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,case when d='seller' then '2026-09-05-v2' else '2026-09-05' end,'en' from access_ids cross join unnest(array['terms','privacy','adult']) d;
 grant select on access_ids to authenticated;
 select set_config('request.jwt.claim.sub',(select id::text from access_ids where k='partner'),true);
 set local role authenticated;

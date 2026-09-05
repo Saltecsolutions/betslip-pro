@@ -1,0 +1,30 @@
+begin;
+create temporary table partnership_test_ids(k text,id uuid);
+insert into partnership_test_ids values('owner',gen_random_uuid()),('other',gen_random_uuid()),('admin',gen_random_uuid());
+insert into auth.users(id,email,raw_user_meta_data) select id,id::text||'@test.invalid','{}'::jsonb from partnership_test_ids;
+update public.profiles set role='admin',status='active' where id=(select id from partnership_test_ids where k='admin');
+update public.profiles set status='active' where id in(select id from partnership_test_ids);
+insert into public.policy_acceptances(user_id,document,version,locale) select id,d,'2026-09-05','en' from partnership_test_ids cross join unnest(array['terms','privacy','adult']) d;
+grant select on partnership_test_ids to authenticated;
+select set_config('request.jwt.claim.sub',(select id::text from partnership_test_ids where k='owner'),true);
+set local role authenticated;
+select public.submit_partnership_request('Test brand','consumer','A test matchday campaign',100000,current_date+1,current_date+7,'matchday');
+do $$ begin
+ if jsonb_array_length(public.read_partnership_requests(false))<>1 then raise exception 'FAIL owner read';end if;
+ if has_table_privilege('authenticated','partnerships.requests','select') or has_table_privilege('authenticated','partnerships.requests','insert') then raise exception 'FAIL direct table access';end if;
+ begin perform public.read_partnership_requests(true);raise exception 'FAIL admin access accepted';exception when others then if sqlerrm='FAIL admin access accepted' then raise;end if;end;
+ begin perform public.submit_partnership_request('X','consumer','too short',1,current_date+1,current_date,'custom');raise exception 'FAIL invalid request accepted';exception when check_violation then null;end;
+end $$;
+select set_config('request.jwt.claim.sub',(select id::text from partnership_test_ids where k='other'),true);
+do $$ begin if jsonb_array_length(public.read_partnership_requests(false))<>0 then raise exception 'FAIL cross-user read';end if;end $$;
+select set_config('request.jwt.claim.sub',(select id::text from partnership_test_ids where k='admin'),true);
+select public.review_partnership_request((public.read_partnership_requests(true)->0->>'id')::uuid,'reviewing','Please discuss the proposed dates.');
+select set_config('request.jwt.claim.sub',(select id::text from partnership_test_ids where k='owner'),true);
+do $$ begin if public.read_partnership_requests(false)->0->>'response'<>'Please discuss the proposed dates.' then raise exception 'FAIL applicant response';end if;end $$;
+reset role;
+do $$ begin
+ if has_function_privilege('anon','public.submit_partnership_request(text,text,text,bigint,date,date,text)','execute') then raise exception 'FAIL anonymous submission';end if;
+ if not exists(select 1 from public.audit_logs where action='partnership_reviewed' and actor_user_id=(select id from partnership_test_ids where k='admin')) then raise exception 'FAIL audit';end if;
+end $$;
+select 'PASS: submission, validation, isolation, admin review, response and audit' as result;
+rollback;

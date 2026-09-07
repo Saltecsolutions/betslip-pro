@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:db": "node scripts/test-database.mjs",
-    "test": "node --test supabase/functions/admin-alerts/handler.test.mjs"
+    "test": "node --test supabase/functions/admin-alerts/handler.test.mjs scripts/security-headers.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

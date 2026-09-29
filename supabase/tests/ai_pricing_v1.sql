@@ -14,7 +14,7 @@ do $$declare p jsonb;r jsonb;begin
  begin insert into public.predictions(tipster_id,title,sport,match_name,prediction_text,match_date,price_tzs) values((select id from ids where k='tid'),'Bypass','Football','A vs B','Home wins',now()+interval '1 day',9000);raise exception 'FAIL direct submission';exception when insufficient_privilege then null;end;
  begin perform public.platform_revenue_summary();raise exception 'FAIL seller finance access';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
  r:=public.submit_prediction(jsonb_build_object('title','First pricing fixture','sport','Football','match_name','A vs B','prediction_text','Home team wins','analysis','A complete preview for testing this submission.','match_date',now()+interval '1 day','odds',2,'selection_count',1,'bookmaker','BetPawa','betslip_code','TEST001','price_tzs',9000));
- if r->>'status'<>'pending' or not(r->'reasons'?'probation') then raise exception 'FAIL probation';end if;
+ if r->>'status'<>'published' or jsonb_array_length(r->'reasons')<>0 then raise exception 'FAIL approved first-slip auto-publication';end if;
  insert into ids values('first',(r->>'id')::uuid);
 end $$;
 reset role;

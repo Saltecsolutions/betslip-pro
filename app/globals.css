@@ -28,3 +28,5 @@
 .auth-switch button{border:0;background:none;color:var(--green);font-weight:700;padding:10px 4px;min-height:44px}
 .auth-legal{text-align:center;margin:0}
 .auth-signup h1{font-size:30px}
+
+.password-help{align-self:flex-end;display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--green)}

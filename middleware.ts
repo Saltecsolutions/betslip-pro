@@ -7,8 +7,8 @@ export async function middleware(request:NextRequest){
  const path=request.nextUrl.pathname;
  const protectedPath=['/revenue','/review','/support','/dashboard','/advertiser','/purchases','/tipster/','/admin','/account','/notifications'].some(p=>path.startsWith(p))||path==='/tipster';
  let target:string|null=null;
- if(protectedPath&&!user)target='/login?next='+encodeURIComponent(path+request.nextUrl.search);
- if(user&&protectedPath&&path!=='/account/privacy'&&!path.startsWith('/support')){
+ if(protectedPath&&!user)target=path==='/account/reset-password'?'/forgot-password?error=expired':'/login?next='+encodeURIComponent(path+request.nextUrl.search);
+ if(user&&protectedPath&&path!=='/account/privacy'&&path!=='/account/reset-password'&&!path.startsWith('/support')){
  const {data,error}=await db.rpc('policy_status');
  if(error||!data?.accepted||(path.startsWith('/tipster')&&!data?.seller))target='/account/privacy?next='+encodeURIComponent(path+request.nextUrl.search);
  }

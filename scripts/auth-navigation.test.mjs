@@ -17,3 +17,9 @@ test('missing consent fails closed and retains the intended destination',()=>{
  assert.equal(afterSignIn('/tipster/predictions/new',{accepted:true,seller:false}),'/account/privacy?next=%2Ftipster%2Fpredictions%2Fnew');
  assert.equal(afterSignIn('/tipsters',{accepted:true}),'/tipsters');
 });
+
+test('recovery destination bypasses consent without allowing external redirects',()=>{
+ assert.equal(afterSignIn('/account/reset-password',null),'/account/reset-password');
+ assert.equal(safeNext('/account/reset-password?next=https://evil.example'),'/account/reset-password');
+ assert.equal(afterSignIn('/admin',null),'/account/privacy?next=%2Fadmin');
+});

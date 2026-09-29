@@ -1,5 +1,5 @@
 import {createServerClient, type CookieOptions} from '@supabase/ssr';
-import {safeNext} from '@/lib/auth-next';
+import {safeNext,afterSignIn} from '@/lib/auth-next';
 import {NextRequest,NextResponse} from 'next/server';
 export async function GET(request:NextRequest){
  const origin=process.env.NEXT_PUBLIC_APP_URL||request.nextUrl.origin;
@@ -9,7 +9,7 @@ export async function GET(request:NextRequest){
  const response=NextResponse.redirect(new URL(next,origin));
  const db=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{cookies:{getAll:()=>request.cookies.getAll(),setAll:(items:{name:string;value:string;options:CookieOptions}[])=>items.forEach(({name,value,options})=>response.cookies.set(name,value,options))}});
  const {error}=await db.auth.exchangeCodeForSession(code);
- if(!error){const {data:status,error:policyError}=await db.rpc("policy_status");if(policyError||!status?.accepted)response.headers.set("Location",new URL("/account/privacy?next="+encodeURIComponent(next),origin).toString());}
+ if(!error){const {data:status,error:policyError}=await db.rpc("policy_status");response.headers.set("Location",new URL(afterSignIn(next,policyError?null:status),origin).toString());}
  response.headers.set("Cache-Control","private, no-store");
  return error?NextResponse.redirect(new URL(`/login?verification=failed&next=${encodeURIComponent(next)}`,origin)):response;
 }

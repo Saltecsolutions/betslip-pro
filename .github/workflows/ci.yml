@@ -15,6 +15,7 @@ jobs:
       - run: npm ci
       - run: npm run test:db
       - run: npm test
+      - run: node --test scripts/auth-navigation.test.mjs
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co

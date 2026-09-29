@@ -6,3 +6,12 @@ export function safeNext(value: string | null | undefined): string {
   if (query && !(/^[^#]*$/.test(query) && (query === 'buy=1' || query === 'following=1'))) return path;
   return value;
 }
+
+/** Keep consent routing consistent for password sign-in and verification links. */
+export function afterSignIn(value: string | null | undefined, status?: {accepted?: boolean; seller?: boolean} | null): string {
+  const next = safeNext(value);
+  const needsSeller = next === '/tipster' || next.startsWith('/tipster/');
+  return status?.accepted && (!needsSeller || status.seller)
+    ? next
+    : '/account/privacy?next=' + encodeURIComponent(next);
+}

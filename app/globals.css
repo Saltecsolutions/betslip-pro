@@ -17,3 +17,7 @@
 
 /* The search container owns the focus indicator, avoiding a second ring on iOS. */
 .search-label input:focus{outline:none;box-shadow:none}
+
+/* Keep the sign-in control on one line on compact phone screens. */
+.header-tools>.btn{white-space:nowrap;flex-shrink:0}
+@media(max-width:360px){.header-inner{padding-inline:12px}.brand{font-size:20px}.brand-mark{width:28px;height:32px}.header-tools{gap:6px}.header-tools .btn{padding-inline:10px}}
